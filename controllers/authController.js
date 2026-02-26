@@ -55,7 +55,7 @@ const sellerRegisteration = asyncFunction(async (req, res, next) => {
 
   const existingUser = await User.findOne({ phone });
   if (existingUser)
-    return next(new ApiError("This phone number already exists", 400));
+    return next(new ApiError("هذا الرقم مسجل بالفعل", 400));
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
