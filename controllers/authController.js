@@ -98,7 +98,7 @@ const buyerLogin = asyncFunction(async (req, res, next) => {
   if (!email || !password) {
     return next(new ApiError("Please enter your email and password", 400));
   }
-  const user = await User.findOne({ email, role: "buyer" });
+  const user = await User.findOne({ email });
 
   if (!user) return next(new ApiError("Invalid email or password!", 401));
   const validPswd = await bcrypt.compare(password, user.password);
