@@ -31,9 +31,6 @@ if (process.env.NODE_ENV == "development") {
   console.log(`node: ${process.env.NODE_ENV}`);
 }
 
-const authJwt = require("../middlewares/jwt");
-app.use(authJwt());
-
 // Routes
 const authRouter = require("../routes/authRoutes");
 const userRouter = require("../routes/userRoutes");
