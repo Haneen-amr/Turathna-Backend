@@ -41,7 +41,7 @@ const processImages = (req, res, next) => {
       (file) =>
         `${req.protocol}://${req.get("host")}/public/uploads/${file.filename}`,
     );
-    console.log("Photos processed:", req.body.uploadedPhotos); // للتأكد في الـ Console
+    console.log("Photos processed:", req.body.uploadedPhotos);
   }
   next();
 };

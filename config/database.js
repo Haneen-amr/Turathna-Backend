@@ -1,7 +1,6 @@
 const mongoose = require("mongoose");
-// const asyncFunction = require("../middlewares/asyncMW");
 
-console.log("DB URI is:", process.env.DB_URI); // شوفي هيطبع إيه في الـ terminal
+console.log("DB URI is:", process.env.DB_URI);
 
 const dbConnection = () => {
   mongoose
