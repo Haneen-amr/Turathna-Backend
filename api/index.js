@@ -35,8 +35,11 @@ const authJwt = require("../middlewares/jwt");
 app.use(authJwt());
 
 // Routes
-const authRoutes = require("../routes/authRoutes");
-app.use(`${process.env.API_URL}/user`, authRoutes);
+const authRouter = require("../routes/authRoutes");
+const userRouter = require("../routes/userRoutes");
+
+app.use(`${process.env.API_URL}/user`, authRouter);
+app.use(`${process.env.API_URL}/user`, userRouter);
 
 app.all(/(.*)/, (req, res, next) => {
   next(new ApiError(`Can't find this route: ${req.originalUrl}`, 404));
