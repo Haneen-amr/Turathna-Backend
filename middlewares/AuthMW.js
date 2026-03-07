@@ -1,45 +1,41 @@
 const ApiError = require("../utils/apiError");
 
+// Dynamic MW to check role
+const restrictTo = (...roles) => {
+  return (req, res, next) => {
+    if (!roles.includes(req.auth.role)) {
+      return next(
+        new ApiError("You do not have permission to perform this action", 403),
+      );
+    }
+    next();
+  };
+};
+
 // **Profile owner only (not admin)**
-function checkAuth(req, res, nxt) {
+function checkAuth(req, res, next) {
   if (!req.auth) {
-    return nxt(new ApiError("Please login first!", 403));
+    return next(new ApiError("Please login first!", 401));
   }
-  return nxt();
+  next();
 }
 
-function checkAdmin(req, res, nxt) {
-  if (req.auth.role === "admin") {
-    return nxt();
-  }
-  return nxt(new ApiError("For Admins only!", 403));
-}
-
-// Owners (their own account) or admins
-function checkOwnerOrAdmin(req, res, nxt) {
+// Owners (their own account)
+function isOwner(req, res, next) {
   const isOwner = req.auth.userId === req.params.id;
-  const isAdmin = req.auth.role === "admin";
-  if (isOwner || isAdmin) {
-    return nxt();
+  if (isOwner) {
+    return next(
+      new ApiError(
+        "Unauthorized Access! You can only manage your own data.",
+        403,
+      ),
+    );
   }
-  return nxt(new ApiError("Unauthorized Access!", 403));
-}
-
-// **Any logged-in user but not admin (for placing orders)**
-function checkNonAdminUser(req, res, nxt) {
-  if (req.auth.role === "admin") {
-    return nxt(new ApiError("Admins cannot perform this action", 403));
-  }
-
-  if (req.body.userId && req.body.userId !== req.auth.userId) {
-    return nxt(new ApiError("User ID mismatch!", 403));
-  }
-  nxt();
+  next();
 }
 
 module.exports = {
-  checkAdmin,
-  checkOwnerOrAdmin,
+  restrictTo,
   checkAuth,
-  checkNonAdminUser,
+  isOwner,
 };
