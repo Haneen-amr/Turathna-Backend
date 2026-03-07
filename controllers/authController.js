@@ -21,19 +21,18 @@ const buyerRegisteration = asyncFunction(async (req, res, next) => {
       new ApiError("The email or phone number already registered", 400),
     );
 
-  const hashedPassword = await bcrypt.hash(password, 10);
   const newUser = await User.create({
     firstname,
     lastname,
     email,
     phone,
-    password: hashedPassword,
+    password,
     role: "buyer",
   });
   const token = createToken({ userId: newUser._id, role: newUser.role });
 
   res.status(201).json({
-    status: "succes",
+    status: "success",
     message: "Buyer has registered successfully",
     token,
     data: {
@@ -55,16 +54,7 @@ const sellerRegisteration = asyncFunction(async (req, res, next) => {
 
   const existingUser = await User.findOne({ phone });
   if (existingUser)
-    return next(new ApiError("هذا الرقم مسجل بالفعل", 400));
-
-  const hashedPassword = await bcrypt.hash(password, 10);
-
-  //const images = req.files ? req.files.map((file) => file.path) : productImages;
-  // if (!images || images.length === 0) {
-  //   return next(
-  //     new ApiError("Please upload at least 5 images of your work", 400),
-  //   );
-  // }
+    return next(new ApiError("This phone number already exists", 400));
 
   let images = [];
   if (req.files && req.files.length > 0) {
@@ -76,7 +66,7 @@ const sellerRegisteration = asyncFunction(async (req, res, next) => {
   const newUser = await User.create({
     name,
     phone,
-    password: hashedPassword,
+    password,
     sellingOffline,
     sellingOnline,
     shopAddress,
@@ -84,9 +74,12 @@ const sellerRegisteration = asyncFunction(async (req, res, next) => {
     uploadedPhotos: images,
     role: "seller",
   });
+  const token = createToken({ userId: newUser._id, role: newUser.role });
 
   res.status(201).json({
+    status: "success",
     message: "Profile submitted and waiting for approval",
+    token,
     data: {
       _id: newUser._id,
     },
@@ -98,7 +91,7 @@ const buyerLogin = asyncFunction(async (req, res, next) => {
   if (!email || !password) {
     return next(new ApiError("Please enter your email and password", 400));
   }
-  const user = await User.findOne({ email });
+  const user = await User.findOne({ email, role: "buyer" }).select("+password");
 
   if (!user) return next(new ApiError("Invalid email or password!", 401));
   const validPswd = await bcrypt.compare(password, user.password);
@@ -116,7 +109,9 @@ const buyerLogin = asyncFunction(async (req, res, next) => {
 
 const sellerLogin = asyncFunction(async (req, res, next) => {
   const { phone, password } = req.body;
-  const user = await User.findOne({ phone, role: "seller" });
+  const user = await User.findOne({ phone, role: "seller" }).select(
+    "+password",
+  );
 
   if (!phone || !password) {
     return next(new ApiError("Please enter your phone and password", 400));
