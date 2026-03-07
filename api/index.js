@@ -10,11 +10,10 @@ const app = express();
 app.use(
   cors({
     origin: "*",
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"], // Added PATCH
     credentials: true,
   }),
 );
-
 dbConnection();
 
 const ApiError = require("../utils/apiError");

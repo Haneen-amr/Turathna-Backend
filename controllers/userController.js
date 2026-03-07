@@ -23,7 +23,7 @@ let updateUser = asyncFunction(async (req, res, next) => {
       "shopAddress",
       "websiteLink",
     );
-  } else if (req.auth.role === "buyer") {
+  } else if (req.auth.role === "buyer" || req.auth.role === "admin") {
     allowedFields.push("firstname", "lastname", "email", "phone", "addresses");
   }
   const filteredBody = filterObj(req.body, ...allowedFields);
