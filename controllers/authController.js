@@ -53,8 +53,7 @@ const sellerRegisteration = asyncFunction(async (req, res, next) => {
   } = req.body;
 
   const existingUser = await User.findOne({ phone });
-  if (existingUser)
-    return next(new ApiError("This phone number already exists", 400));
+  if (existingUser) return next(new ApiError("هذا الرقم مسجل بالفعل", 400));
 
   let images = [];
   if (req.files && req.files.length > 0) {
@@ -91,7 +90,7 @@ const buyerLogin = asyncFunction(async (req, res, next) => {
   if (!email || !password) {
     return next(new ApiError("Please enter your email and password", 400));
   }
-  const user = await User.findOne({ email, role: "buyer" }).select("+password");
+  const user = await User.findOne({ email }).select("+password");
 
   if (!user) return next(new ApiError("Invalid email or password!", 401));
   const validPswd = await bcrypt.compare(password, user.password);
