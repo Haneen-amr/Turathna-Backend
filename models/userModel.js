@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
 
 const userSchema = new mongoose.Schema(
   {
@@ -32,6 +33,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
       minlength: 6,
+      select: false,
     },
     role: {
       type: String,
@@ -77,26 +79,17 @@ const userSchema = new mongoose.Schema(
         return this.role === "seller";
       },
     },
-    // salesChannel: {
-    //   type: String,
-    //   enum: ["online", "offline", "both"],
-    //   required: function () {
-    //     return this.role === "seller";
-    //   },
-    // },
     shopAddress: {
       type: String,
       required: function () {
         return this.role === "seller" && this.sellingOffline;
       },
-      //default: undefined,
     },
     websiteLink: {
       type: String,
       required: function () {
         return this.role === "seller" && this.sellingOnline;
       },
-      //default: undefined,
     },
     uploadedPhotos: {
       type: [String],
@@ -119,5 +112,11 @@ const userSchema = new mongoose.Schema(
     timestamps: true,
   },
 );
+
+userSchema.pre("save", async function () {
+  if (!this.isModified("password")) return;
+
+  this.password = await bcrypt.hash(this.password, 12);
+});
 
 module.exports = mongoose.model("User", userSchema);
