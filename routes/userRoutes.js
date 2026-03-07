@@ -16,14 +16,14 @@ router.get(
   "/profile/:id",
   protect,
   isOwner,
-  restrictTo("seller", "buyer"),
+  restrictTo("seller", "buyer", "admin"),
   viewProfile,
 );
 router.patch(
   "/profile/update/:id",
   protect,
   isOwner,
-  restrictTo("seller", "buyer"),
+  restrictTo("seller", "buyer", "admin"),
   validateMW(updateValidator),
   checkUniqueness,
   updateUser,
