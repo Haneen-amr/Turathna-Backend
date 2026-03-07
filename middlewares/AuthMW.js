@@ -1,4 +1,35 @@
 const ApiError = require("../utils/apiError");
+const jwt = require("jsonwebtoken");
+
+// // **Profile owner only (not admin)**
+// function checkAuth(req, res, next) {
+//   if (!req.auth) {
+//     return next(new ApiError("Please login first!", 401));
+//   }
+//   next();
+// }
+
+const protect = async (req, res, next) => {
+  let token = req.headers.authorization;
+  if (token && token.startsWith("Bearer ")) {
+    token = token.split(" ")[1];
+  }
+
+  if (!token) {
+    return next(new ApiError("Pease login first", 401));
+  }
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.auth = {
+      userId: String(decoded.userId),
+      role: decoded.role,
+    };
+
+    next();
+  } catch (err) {
+    return next(new ApiError("Invalid or expired token", 401));
+  }
+};
 
 // Dynamic MW to check role
 const restrictTo = (...roles) => {
@@ -12,18 +43,10 @@ const restrictTo = (...roles) => {
   };
 };
 
-// Profile owner only (not admin)
-function checkAuth(req, res, next) {
-  if (!req.auth) {
-    return next(new ApiError("Please login first!", 401));
-  }
-  next();
-}
-
 // Owners (their own account)
 function isOwner(req, res, next) {
   const isOwner = req.auth.userId === req.params.id;
-  if (isOwner) {
+  if (!isOwner) {
     return next(
       new ApiError(
         "Unauthorized Access! You can only manage your own data.",
@@ -35,7 +58,7 @@ function isOwner(req, res, next) {
 }
 
 module.exports = {
+  protect,
   restrictTo,
-  checkAuth,
   isOwner,
 };

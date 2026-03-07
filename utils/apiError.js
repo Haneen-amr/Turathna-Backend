@@ -1,4 +1,3 @@
-// A custom error class that inherits from the built-in Error object
 class ApiError extends Error {
   constructor(message, statusCode) {
     super(message);
