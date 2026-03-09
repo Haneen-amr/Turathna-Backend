@@ -33,9 +33,11 @@ if (process.env.NODE_ENV == "development") {
 // Routes
 const authRouter = require("../routes/authRoutes");
 const userRouter = require("../routes/userRoutes");
+const adminRouter = require("../routes/adminRoutes");
 
 app.use(`${process.env.API_URL}/user`, authRouter);
 app.use(`${process.env.API_URL}/user`, userRouter);
+app.use(`${process.env.API_URL}/admin`, adminRouter);
 
 app.all(/(.*)/, (req, res, next) => {
   next(new ApiError(`Can't find this route: ${req.originalUrl}`, 404));
