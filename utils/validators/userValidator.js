@@ -9,6 +9,10 @@ const updateSchema = {
   type: "object",
   properties: {
     role: { type: "string", enum: ["buyer", "seller"] },
+    verificationStatus: {
+      type: "string",
+      enum: ["pending", "approved", "rejected"],
+    },
     firstname: {
       type: "string",
       pattern: "^[A-Z][a-z]*$",
