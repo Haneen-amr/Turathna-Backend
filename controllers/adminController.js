@@ -1,15 +1,12 @@
 const asyncFunction = require("../middlewares/asyncMW");
 const ApiError = require("../utils/apiError");
 const User = require("../models/userModel");
-const filterObj = require("../utils/filterObj");
 
 const getPendingSellers = asyncFunction(async (req, res, next) => {
   let sellersList = await User.find({
     role: "seller",
     verificationStatus: "pending",
-  })
-    .select("_id name phone verificationStatus")
-    .sort({ _id: -1 });
+  }).sort({ _id: -1 });
 
   if (sellersList.length === 0) {
     return next(new ApiError("No pending sellers found", 404));
