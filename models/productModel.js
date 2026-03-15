@@ -13,7 +13,7 @@ const productSchema = new mongoose.Schema(
       trim: true,
     },
     description_ar: {
-      type: String, // Ensure this is a simple String
+      type: String,
     },
     description_video: { type: String },
     descriptionType: {
@@ -32,7 +32,7 @@ const productSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    images: {
+    productImages: {
       type: [String],
     },
     review: {

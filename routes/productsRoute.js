@@ -11,7 +11,7 @@ const {
   deleteProduct,
 } = require("../controllers/productController");
 
-const { uploadMix, processMix } = require("../middlewares/uploadImageMW");
+const { uploadFiles, processFiles } = require("../middlewares/uploadImageMW");
 const { protect, restrictTo, isOwner } = require("../middlewares/AuthMW");
 const validateMW = require("../middlewares/schemaValidatorMW");
 const {
@@ -40,11 +40,11 @@ router.get(
   getProductByID,
 );
 
-const productUploads = uploadMix("images", 5);
+const productUploads = uploadFiles("productImages", 5);
 router.post(
   "/seller/:id",
   productUploads,
-  processMix,
+  processFiles("productImages"),
   protect,
   isOwner,
   restrictTo("seller"),
@@ -55,7 +55,7 @@ router.post(
 router.patch(
   "/seller/:id/:productId",
   productUploads,
-  processMix,
+  processFiles("productImages"),
   protect,
   isOwner,
   restrictTo("seller"),

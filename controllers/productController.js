@@ -97,7 +97,7 @@ const addProduct = asyncFunction(async (req, res, next) => {
     descriptionType,
     price,
     coverImage,
-    images,
+    productImages,
     region,
   } = req.body;
 
@@ -125,7 +125,7 @@ const addProduct = asyncFunction(async (req, res, next) => {
     description_en: null,
     price,
     coverImage,
-    images: images,
+    productImages: productImages,
     seller: req.params.id,
     region: officialRegions,
   });
