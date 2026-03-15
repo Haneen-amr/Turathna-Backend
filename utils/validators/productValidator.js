@@ -28,7 +28,7 @@ const productSchema = {
     },
     descriptionType: {
       type: "string",
-      enum: ["text", "video"], // Now AJV knows this field is allowed
+      enum: ["text", "video"],
     },
     description_en: {
       type: "string",
@@ -39,7 +39,7 @@ const productSchema = {
       type: "number",
       minimum: 0,
     },
-    images: {
+    productImages: {
       type: "array",
       items: { type: "string" },
       minItems: 1,
@@ -79,7 +79,7 @@ const productSchema = {
       default: "pending",
     },
   },
-  required: ["title_ar", "price", "images", "region"],
+  required: ["title_ar", "price", "productImages", "region"],
   additionalProperties: false,
 };
 
@@ -104,7 +104,7 @@ const updateProductSchema = {
     },
     descriptionType: {
       type: "string",
-      enum: ["text", "video"], // Now AJV knows this field is allowed
+      enum: ["text", "video"],
     },
     description_en: {
       type: "string",
@@ -115,7 +115,7 @@ const updateProductSchema = {
       type: "number",
       minimum: 0,
     },
-    images: {
+    productImages: {
       type: "array",
       items: { type: "string" },
       minItems: 1,
@@ -167,35 +167,10 @@ const updateProductSchema = {
   additionalProperties: false,
 };
 
-// const productStatusSchema = {
-//   type: "object",
-//   properties: {
-//     title_en: {
-//       type: "string",
-//       pattern: "^[A-Za-z0-9\\s]+$",
-//       errorMessage: "Product Title must be in English",
-//     },
-//     description_en: {
-//       type: "string",
-//       pattern: "^[A-Za-z0-9\\s]+$",
-//       errorMessage: "Product Description must be in English",
-//     },
-//     verificationStatus: {
-//       type: "string",
-//       enum: ["pending", "approved", "rejected"],
-//       default: "pending",
-//     },
-//   },
-//   required: ["verificationStatus"],
-//   additionalProperties: false,
-// };
-
 const productValidator = ajv.compile(productSchema);
 const updateProductValidator = ajv.compile(updateProductSchema);
-//const updateStatusValidator = ajv.compile(productStatusSchema);
 
 module.exports = {
   productValidator,
   updateProductValidator,
-  //updateStatusValidator,
 };
