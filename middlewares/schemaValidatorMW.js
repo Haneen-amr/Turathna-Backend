@@ -1,7 +1,6 @@
-const User = require("../models/userModel");
-module.exports = (validator, role) => {
-  return async (req, res, next) => {
-    const dataToValidate = { ...req.body, role: role || req.params.role };
+module.exports = (validator, role = {}) => {
+  return (req, res, next) => {
+    const dataToValidate = { ...req.body, ...role };
 
     const valid = validator(dataToValidate);
 
@@ -10,13 +9,15 @@ module.exports = (validator, role) => {
         status: "fail",
         message: "Validation Error",
         errors: validator.errors.map((err) => ({
-          path: err.instancePath.substring(1) || err.params.missingProperty,
+          path:
+            err.instancePath.substring(1) ||
+            err.params.additionalProperty ||
+            err.params.missingProperty,
           message: err.message,
         })),
       });
     }
 
-    req.body = dataToValidate;
     next();
   };
 };
