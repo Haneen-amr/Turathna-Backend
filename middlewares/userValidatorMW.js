@@ -1,4 +1,3 @@
-// utils/checkUniqueness.js
 const User = require("../models/userModel");
 const ApiError = require("../utils/apiError");
 
@@ -9,7 +8,6 @@ const checkUniqueness = async (req, res, next) => {
   if (email) query.push({ email });
   if (phone) query.push({ phone });
 
-  // If neither email nor phone is provided in the update, just move on
   if (query.length === 0) return next();
 
   // Find if another user (not the current one) has this email/phone

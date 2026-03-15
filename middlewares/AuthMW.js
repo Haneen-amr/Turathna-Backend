@@ -1,14 +1,6 @@
 const ApiError = require("../utils/apiError");
 const jwt = require("jsonwebtoken");
 
-// // **Profile owner only (not admin)**
-// function checkAuth(req, res, next) {
-//   if (!req.auth) {
-//     return next(new ApiError("Please login first!", 401));
-//   }
-//   next();
-// }
-
 const protect = async (req, res, next) => {
   let token = req.headers.authorization;
   if (token && token.startsWith("Bearer ")) {

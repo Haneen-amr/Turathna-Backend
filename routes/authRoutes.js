@@ -6,7 +6,7 @@ const {
   buyerLogin,
   sellerLogin,
 } = require("../controllers/authController");
-const { uploadImages, processImages } = require("../middlewares/uploadImageMW");
+const { uploadFiles, processFiles } = require("../middlewares/uploadImageMW");
 
 const validateMW = require("../middlewares/schemaValidatorMW");
 const {
@@ -17,21 +17,27 @@ const {
 //Registration Route Handler:
 router.post(
   "/register/buyer",
-  validateMW(registerValidator, "buyer"),
+  validateMW(registerValidator, { role: "buyer" }),
   buyerRegisteration,
 );
 
 router.post(
   "/register/seller",
-  uploadImages,
-  processImages,
-  validateMW(registerValidator, "seller"),
+  uploadFiles("uploadedPhotos", 5),
+  processFiles("uploadedPhotos"),
+  validateMW(registerValidator, { role: "seller" }),
   sellerRegisteration,
 );
 
-router.post("/login/:role", validateMW(loginValidator), (req, res, next) => {
-  if (req.params.role === "buyer") return buyerLogin(req, res, next);
-  if (req.params.role === "seller") return sellerLogin(req, res, next);
-});
+router.post(
+  "/login/buyer",
+  validateMW(loginValidator, { role: "buyer" }),
+  buyerLogin,
+);
+router.post(
+  "/login/seller",
+  validateMW(loginValidator, { role: "seller" }),
+  sellerLogin,
+);
 
 module.exports = router;
