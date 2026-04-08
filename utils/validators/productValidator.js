@@ -5,14 +5,12 @@ const ajv = new Ajv({ allErrors: true, strict: false, coerceTypes: true });
 ajvFormats(ajv);
 ajvErrors(ajv);
 
-const regions = ["Sinai", "Nubia", "Siwa Oasis", "Upper Egypt", "Fayoum"];
-
 const productSchema = {
   type: "object",
   properties: {
     title_ar: {
       type: "string",
-      pattern: "^[\\u0600-\\u06FF\\s]+$",
+      pattern: "^[\\u0600-\\u06FF\\s.,،]+$",
       errorMessage: "Product Title must be in Arabic",
     },
     title_en: {
@@ -22,20 +20,29 @@ const productSchema = {
     },
     description_ar: {
       type: "string",
-    },
-    description_video: {
-      type: "string",
-    },
-    descriptionType: {
-      type: "string",
-      enum: ["text", "video"],
+      pattern: "^[\\u0600-\\u06FF\\s.,،]+$",
+      errorMessage: "Product Description must be in Arabic",
     },
     description_en: {
       type: "string",
       pattern: "^[A-Za-z0-9\\s]+$",
       errorMessage: "Product Description must be in English",
     },
-    price: {
+    heritage_text: {
+      type: "string",
+    },
+    heritage_video: {
+      type: "string",
+    },
+    heritageType: {
+      type: "string",
+      enum: ["text", "video", null],
+    },
+    originalPrice: {
+      type: "number",
+      minimum: 0,
+    },
+    finalPrice: {
       type: "number",
       minimum: 0,
     },
@@ -44,34 +51,19 @@ const productSchema = {
       items: { type: "string" },
       minItems: 1,
       maxItems: 5,
-      errorMessage: "Please upload maximum 5 images of your product",
+      errorMessage: "Please upload 1-5 images of your product",
     },
     coverImage: {
       type: "string",
     },
     region: {
-      oneOf: [
-        {
-          type: "string",
-          pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$",
-        },
-        {
-          type: "array",
-          items: {
-            type: "string",
-            pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$",
-          },
-        },
-      ],
+      type: "string",
+      pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$",
       errorMessage: "Region must be a slug or an array of slugs",
     },
-    regionDescription: { type: "array" },
     seller: {
       type: "string",
       pattern: "^[0-9a-fA-F]{24}$",
-    },
-    review: {
-      type: "string",
     },
     verificationStatus: {
       type: "string",
@@ -79,7 +71,7 @@ const productSchema = {
       default: "pending",
     },
   },
-  required: ["title_ar", "price", "productImages", "region"],
+  required: ["title_ar", "originalPrice", "productImages", "region"],
   additionalProperties: false,
 };
 
@@ -88,7 +80,7 @@ const updateProductSchema = {
   properties: {
     title_ar: {
       type: "string",
-      pattern: "^[\\u0600-\\u06FF\\s]+$",
+      pattern: "^[\\u0600-\\u06FF\\s.,،]+$",
       errorMessage: "Product Title must be in Arabic",
     },
     title_en: {
@@ -98,20 +90,29 @@ const updateProductSchema = {
     },
     description_ar: {
       type: "string",
-    },
-    description_video: {
-      type: "string",
-    },
-    descriptionType: {
-      type: "string",
-      enum: ["text", "video"],
+      pattern: "^[\\u0600-\\u06FF\\s.,،]+$",
+      errorMessage: "Product Description must be in Arabic",
     },
     description_en: {
       type: "string",
       pattern: "^[A-Za-z0-9\\s]+$",
       errorMessage: "Product Description must be in English",
     },
-    price: {
+    heritage_text: {
+      type: "string",
+    },
+    heritage_video: {
+      type: "string",
+    },
+    heritageType: {
+      type: "string",
+      enum: ["text", "video", null],
+    },
+    originalPrice: {
+      type: "number",
+      minimum: 0,
+    },
+    finalPrice: {
       type: "number",
       minimum: 0,
     },
@@ -120,7 +121,7 @@ const updateProductSchema = {
       items: { type: "string" },
       minItems: 1,
       maxItems: 5,
-      errorMessage: "Please upload maximum 5 images of your product",
+      errorMessage: "Please upload 1-5 images of your product",
     },
     coverImage: {
       type: "string",
@@ -131,29 +132,12 @@ const updateProductSchema = {
       errorMessage: "Category must be a valid slug",
     },
     region: {
-      oneOf: [
-        {
-          type: "string",
-          pattern: "^[\\p{L}0-9]+(?:-[\\p{L}0-9]+)*$",
-        },
-        {
-          type: "array",
-          items: {
-            type: "string",
-            pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$",
-          },
-        },
-      ],
-      errorMessage: "Region must be a slug or an array of slugs",
+      type: "string",
+      pattern: "^[\\p{L}0-9]+(?:-[\\p{L}0-9]+)*$",
     },
-    categoryDescription: { type: "string" },
-    regionDescription: { type: "array" },
     seller: {
       type: "string",
       pattern: "^[0-9a-fA-F]{24}$",
-    },
-    review: {
-      type: "string",
     },
     verificationStatus: {
       type: "string",

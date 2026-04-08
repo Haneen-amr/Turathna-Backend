@@ -6,9 +6,10 @@ const {
   getSellerByID,
   updateSellerStatus,
   getPendingProducts,
-  getProductByID,
-  updateProductStatus,
+  acceptProduct,
+  rejectProduct,
 } = require("../controllers/adminController");
+const { uploadFiles, processFiles } = require("../middlewares/uploadImageMW");
 const { protect, restrictTo } = require("../middlewares/AuthMW");
 const validateMW = require("../middlewares/schemaValidatorMW");
 const { updateValidator } = require("../utils/validators/userValidator");
@@ -35,14 +36,21 @@ router.get(
   getPendingProducts,
 );
 
-router.get("/product/:id", protect, restrictTo("admin"), getProductByID);
-
 router.patch(
-  "/update/product/:id",
+  "/product/:id/approve",
   protect,
   restrictTo("admin"),
+  uploadFiles("heritage_video", 1),
+  processFiles("heritage_video"),
   validateMW(updateProductValidator),
-  updateProductStatus,
+  acceptProduct,
+);
+
+router.patch(
+  "/product/:id/reject",
+  protect,
+  restrictTo("admin"),
+  rejectProduct,
 );
 
 module.exports = router;

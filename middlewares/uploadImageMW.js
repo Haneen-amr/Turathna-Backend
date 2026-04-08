@@ -44,12 +44,11 @@ const uploadFiles = (imageFieldName, maxCount = 5) => {
   const uploadFields = upload.fields([
     { name: imageFieldName, maxCount: maxCount },
     { name: "productImages", maxCount: 5 },
-    { name: "description_video", maxCount: 1 },
+    { name: "heritage_video", maxCount: 1 },
   ]);
   return (req, res, next) => {
     uploadFields(req, res, (err) => {
       if (err) {
-        console.log("Multer Error:", err); // هيطبع لك الغلط هنا في الـ terminal
         return next(new ApiError(err.message, 400));
       }
       next();
@@ -77,11 +76,13 @@ const processFiles = (imageFieldName) => {
       req.body.coverImage = req.body.productImages[0];
     }
 
-    // 2. Handle Description Videos
-    if (req.files.description_video) {
-      const videoFile = req.files.description_video[0];
-      req.body.description_video = `${req.protocol}://${req.get("host")}/public/uploads/${videoFile.filename}`;
-      req.body.descriptionType = "video";
+    // 2. Handle Heritage Videos
+    if (req.files.heritage_video) {
+      const videoFile = req.files.heritage_video[0];
+      req.body.heritage_video = `${req.protocol}://${req.get("host")}/public/uploads/${videoFile.filename}`;
+      req.body.heritageType = "video";
+    } else if (req.body.heritage_text) {
+      req.body.heritageType = "text";
     }
 
     next();

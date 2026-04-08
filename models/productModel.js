@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-const { CATEGORIES_INFO, REGIONS_INFO } = require("../utils/constants");
 
 const productSchema = new mongoose.Schema(
   {
@@ -15,40 +14,46 @@ const productSchema = new mongoose.Schema(
     description_ar: {
       type: String,
     },
-    description_video: { type: String },
-    descriptionType: {
-      type: String,
-      enum: ["text", "video"],
-      default: "text",
-    },
     description_en: {
       type: String,
-      trim: true,
     },
-    price: {
+    heritage_text: {
+      type: String,
+    },
+    heritage_video: {
+      type: String,
+    },
+    heritageType: {
+      type: String,
+      enum: ["text", "video"],
+    },
+    originalPrice: {
       type: Number,
+      set: (v) => Math.round(v),
+    },
+    finalPrice: {
+      type: Number,
+      set: (v) => Math.round(v),
     },
     coverImage: {
       type: String,
-      required: true,
+      //required: true,
     },
     productImages: {
       type: [String],
     },
-    review: {
-      type: String,
-    },
+    // review: {
+    //   type: String,
+    // },
     category: {
-      type: String,
-      enum: Object.keys(CATEGORIES_INFO),
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Category",
     },
-    categoryDescription: String,
     region: {
-      type: [String],
-      required: [true, "Product must have at least one region"],
-      enum: Object.keys(REGIONS_INFO),
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Region",
+      required: [true, "Product must belong to a region"],
     },
-    regionDescription: [String],
     seller: {
       type: mongoose.Schema.ObjectId,
       ref: "User",
@@ -67,14 +72,5 @@ const productSchema = new mongoose.Schema(
     timestamps: true,
   },
 );
-
-productSchema.pre("save", async function () {
-  if (this.category) {
-    this.categoryDescription = CATEGORIES_INFO[this.category];
-  }
-  if (this.region) {
-    this.regionDescription = this.region.map((reg) => REGIONS_INFO[reg]);
-  }
-});
 
 module.exports = mongoose.model("Product", productSchema);
