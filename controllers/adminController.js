@@ -2,13 +2,10 @@ const asyncFunction = require("../middlewares/asyncMW");
 const ApiError = require("../utils/apiError");
 const User = require("../models/userModel");
 const Product = require("../models/productModel");
-const {
-  getNameFromSlug,
-  CATEGORIES_INFO,
-  REGIONS_INFO,
-} = require("../utils/constants");
-const { autoTranslate } = require("./translationController");
+const Category = require("../models/categoryModel");
+const Region = require("../models/regionModel");
 
+//***SELLERS***
 const getPendingSellers = asyncFunction(async (req, res, next) => {
   let sellersList = await User.find({
     role: "seller",
@@ -20,7 +17,11 @@ const getPendingSellers = asyncFunction(async (req, res, next) => {
   if (sellersList.length === 0) {
     return next(new ApiError("No pending sellers found", 404));
   }
-  res.json(sellersList);
+  res.status(200).json({
+    status: "success",
+    results: sellersList.length,
+    data: { sellersList },
+  });
 });
 
 const getSellerByID = asyncFunction(async (req, res, next) => {
@@ -50,11 +51,14 @@ const updateSellerStatus = asyncFunction(async (req, res, next) => {
   });
 });
 
+//***PRODUCTS***
 const getPendingProducts = asyncFunction(async (req, res, next) => {
   let productsList = await Product.find({
     verificationStatus: "pending",
   })
-    .select("_id title_ar description_ar price verificationStatus")
+    .select(
+      "_id title_ar description_ar coverImage productImages originalPrice finalPrice price verificationStatus rejectionMsg",
+    )
     .populate("seller", "name phone")
     .sort({ _id: -1 });
 
@@ -68,91 +72,61 @@ const getPendingProducts = asyncFunction(async (req, res, next) => {
   });
 });
 
-const getProductByID = asyncFunction(async (req, res, next) => {
-  const product = await Product.findById(req.params.id);
+const acceptProduct = asyncFunction(async (req, res, next) => {
+  const body = req.body || {};
+  let product = await Product.findById(req.params.id);
   if (!product) return next(new ApiError("Product not found", 404));
-  res.status(200).json({
-    success: true,
-    product,
-  });
-});
-
-const updateProductStatus = asyncFunction(async (req, res, next) => {
-  const product = await Product.findById(req.params.id);
-  if (!product) return next(new ApiError("Product not found", 404));
-
-  const {
-    verificationStatus,
-    rejectionMsg,
-    title_ar,
-    title_en,
-    description_ar,
-    description_en,
-    price,
-    region,
-    category,
-  } = req.body;
-
-  let officialCategory = product.category; // Default to existing
-  if (category) {
-    officialCategory = getNameFromSlug(category, CATEGORIES_INFO);
-  }
-
-  let officialRegions = product.region; // Default to existing
-  if (region) {
-    const regionInput = Array.isArray(region) ? region : [region];
-    officialRegions = regionInput.map((slug) =>
-      getNameFromSlug(slug, REGIONS_INFO),
-    );
-  }
-
-  if (!officialCategory || officialRegions.includes(undefined)) {
-    return next(new ApiError("Invalid Category or Region name", 400));
-  }
 
   const updateData = {
-    verificationStatus,
-    rejectionMsg,
-    title_ar,
-    description_ar,
-    price,
-    region: officialRegions,
-    regionDescription: officialRegions.map((reg) => REGIONS_INFO[reg]),
-    category: officialCategory,
-    categoryDescription: CATEGORIES_INFO[officialCategory],
+    ...body,
+    verificationStatus: "approved",
+    rejectionMsg: null,
   };
 
-  if (verificationStatus === "rejected") updateData.rejectionMsg = rejectionMsg;
+  let categoryId = product.category;
+  if (body.category) {
+    const categoryExists = await Category.findOne({
+      slugName: body.category,
+    });
+    if (!categoryExists)
+      return next(new ApiError("This category does not exist", 404));
+    categoryId = categoryExists._id;
+  }
+  if (!categoryId) {
+    return next(new ApiError("Product must belong to a category", 400));
+  }
+  updateData.category = categoryId;
 
-  if (verificationStatus === "approved") {
-    updateData.rejectionMsg = null;
-
-    try {
-      const [translatedTitle, translatedDesc] = await Promise.all([
-        title_en
-          ? Promise.resolve(title_en)
-          : autoTranslate(title_ar || product.title_ar, "en", "ar"),
-        description_en
-          ? Promise.resolve(description_en)
-          : autoTranslate(description_ar || product.description_ar, "en", "ar"),
-      ]);
-      updateData.title_en = translatedTitle;
-      updateData.description_en = translatedDesc;
-    } catch (err) {
-      return next(new ApiError(`Translation failed: ${err.message}`, 500));
-    }
+  if (body.region) {
+    regionExists = await Region.findOne({ slugName: body.region });
+    if (!regionExists)
+      return next(new ApiError("This region does not exist", 404));
+    updateData.region = regionExists._id;
   }
 
-  if (verificationStatus !== "approved") {
-    if (title_en) updateData.title_en = title_en;
-    if (description_en) updateData.description_en = description_en;
+  const hasExistingHeritage = product.heritage_text || product.heritage_video;
+  const hasNewHeritage = body.heritage_text || body.heritage_video;
+
+  if (!hasExistingHeritage && !hasNewHeritage) {
+    return next(
+      new ApiError("A heritage must be defined for the product", 400),
+    );
   }
 
   const updatedProduct = await Product.findByIdAndUpdate(
     req.params.id,
     updateData,
-    { returnDocument: "after", runValidators: true },
-  );
+    {
+      returnDocument: "after",
+      runValidators: true,
+    },
+  ).populate([
+    {
+      path: "region",
+      select: "slugName",
+    },
+    { path: "category", select: "slugName" },
+  ]);
 
   res.status(200).json({
     status: "success",
@@ -161,11 +135,36 @@ const updateProductStatus = asyncFunction(async (req, res, next) => {
   });
 });
 
+const rejectProduct = asyncFunction(async (req, res, next) => {
+  if (!req.body.rejectionMsg)
+    return next(new ApiError("A Rejection Reason must be clarified"));
+  const product = await Product.findByIdAndUpdate(
+    req.params.id,
+    {
+      verificationStatus: "rejected",
+      rejectionMsg: req.body.rejectionMsg,
+    },
+    { returnDocument: "after" },
+  ).populate([
+    {
+      path: "region",
+      select: "slugName",
+    },
+    { path: "category", select: "slugName" },
+  ]);
+  if (!product) return next(new ApiError("Product not found", 404));
+  res.status(200).json({
+    status: "success",
+    message: "Product is Rejected!",
+    data: { product },
+  });
+});
+
 module.exports = {
   getPendingSellers,
   getSellerByID,
   updateSellerStatus,
   getPendingProducts,
-  getProductByID,
-  updateProductStatus,
+  acceptProduct,
+  rejectProduct,
 };
