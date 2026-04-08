@@ -1,22 +1,24 @@
 const asyncFunction = require("../middlewares/asyncMW");
 const ApiError = require("../utils/apiError");
 const Product = require("../models/productModel");
-const {
-  getNameFromSlug,
-  REGIONS_INFO,
-  CATEGORIES_INFO,
-} = require("../utils/constants");
+const Category = require("../models/categoryModel");
+const Region = require("../models/regionModel");
 const User = require("../models/userModel");
-const factory = require("./handlersFactory");
+const { autoTranslate } = require("./translationController");
 
 const getAllProducts = asyncFunction(async (req, res, next) => {
   let productsList = await Product.find({
     verificationStatus: "approved",
-  }).select("-seller");
+  })
+    .select(
+      "title_ar title_en description_ar description_en finalPrice coverImage productImages",
+    )
+    .sort("-createdAt");
 
   if (productsList.length === 0) {
     return next(new ApiError("No products are available", 404));
   }
+
   res.status(200).json({
     status: "success",
     results: productsList.length,
@@ -27,13 +29,19 @@ const getAllProducts = asyncFunction(async (req, res, next) => {
 const getProductsByCategory = asyncFunction(async (req, res, next) => {
   const filter = { verificationStatus: "approved" };
   if (req.query.category) {
-    const officialName = getNameFromSlug(req.query.category, CATEGORIES_INFO);
-    if (!officialName) return next(new ApiError("Invalid category", 400));
-    filter.category = officialName;
+    const categoryExists = await Category.findOne({
+      slugName: req.query.category,
+    });
+    if (!categoryExists) {
+      return next(new ApiError("This category does not exist", 404));
+    }
+    filter.category = categoryExists._id;
   }
 
   const productsList = await Product.find(filter)
-    .select("-seller")
+    .select(
+      "title_ar title_en description_ar description_en finalPrice coverImage productImages",
+    )
     .sort("-createdAt");
 
   if (productsList.length === 0) {
@@ -49,13 +57,19 @@ const getProductsByCategory = asyncFunction(async (req, res, next) => {
 const getProductsByRegion = asyncFunction(async (req, res, next) => {
   const filter = { verificationStatus: "approved" };
   if (req.query.region) {
-    const officialName = getNameFromSlug(req.query.region, REGIONS_INFO);
-    if (!officialName) return next(new ApiError("Invalid region", 400));
-    filter.region = officialName;
+    const regionExists = await Region.findOne({
+      slugName: req.query.region,
+    });
+    if (!regionExists) {
+      return next(new ApiError("This region does not exist", 404));
+    }
+    filter.region = regionExists._id;
   }
 
   const productsList = await Product.find(filter)
-    .select("-seller")
+    .select(
+      "title_ar title_en description_ar description_en finalPrice coverImage productImages",
+    )
     .sort("-createdAt");
 
   if (productsList.length === 0) {
@@ -76,12 +90,14 @@ const getAllMyProducts = asyncFunction(async (req, res, next) => {
   const seller = await User.findById(req.params.id).select("-password -__v");
   if (!seller || seller.role !== "seller")
     return next(new ApiError("Seller not found", 404));
-  const products = await Product.find(filterObject).populate(
-    "category",
-    "name",
-  );
+  const products = await Product.find(filterObject)
+    .select(
+      "title_ar description_ar coverImage productImages originalPrice verificationStatus rejectionMsg",
+    )
+    .sort("-createdAt");
   if (products.length === 0)
     return next(new ApiError("This seller has no products yet", 404));
+
   res.status(200).json({
     status: "success",
     results: products.length,
@@ -93,53 +109,99 @@ const addProduct = asyncFunction(async (req, res, next) => {
   const {
     title_ar,
     description_ar,
-    description_video,
-    descriptionType,
-    price,
+    originalPrice,
     coverImage,
     productImages,
     region,
   } = req.body;
 
-  const regionInput = Array.isArray(region) ? region : [region];
-  const officialRegions = regionInput.map((slug) =>
-    getNameFromSlug(slug, REGIONS_INFO),
-  );
+  if (!description_ar)
+    return next(
+      new ApiError("A description must be added for the product", 404),
+    );
 
-  if (officialRegions.includes(undefined)) {
-    return next(new ApiError("Invalid Region name", 400));
-  }
+  let regionId = region;
+  const regionExists = await Region.findOne({ slugName: req.body.region });
+  if (!regionExists)
+    return next(new ApiError("This region does not exist", 404));
+  regionId = regionExists._id;
 
-  if (!description_ar && !description_video)
-    return next(new ApiError("A description must be added", 404));
+  const percentage = 0.1;
+  const finalPrice = originalPrice * (1 + percentage);
 
-  if (req.body.region && !Array.isArray(req.body.region)) {
-    req.body.region = [req.body.region];
+  let title_en = null;
+  let description_en = null;
+  try {
+    const [translatedTitle, translatedDesc] = await Promise.all([
+      title_en
+        ? Promise.resolve(title_en)
+        : autoTranslate(title_ar || title_ar, "en", "ar"),
+      description_en
+        ? Promise.resolve(description_en)
+        : autoTranslate(description_ar || description_ar, "en", "ar"),
+    ]);
+    title_en = translatedTitle;
+    description_en = translatedDesc;
+  } catch (err) {
+    return next(new ApiError(`Translation failed: ${err.message}`, 500));
   }
 
   const newProduct = await Product.create({
     title_ar,
+    title_en,
     description_ar,
-    description_video,
-    descriptionType,
-    description_en: null,
-    price,
+    description_en,
+    heritage_text: null,
+    heritage_video: null,
+    heritageType: null,
+    originalPrice,
+    finalPrice,
     coverImage,
-    productImages: productImages,
+    productImages,
     seller: req.params.id,
-    region: officialRegions,
+    region: regionId,
+    category: null,
   });
+
+  let result = newProduct.toObject();
+  delete result.finalPrice;
+  result = await Product.findById(newProduct._id).populate(
+    "region",
+    "slugName",
+  );
 
   res.status(201).json({
     status: "success",
     message: "Product submitted & waiting for approval",
-    data: newProduct,
+    data: result,
   });
 });
 
 const getProductByID = asyncFunction(async (req, res, next) => {
-  const product = await Product.findById(req.params.productId);
+  const { productId } = req.params;
+  let query;
+
+  console.log("Auth:", req.auth);
+  if (req.auth?.role === "seller") {
+    query = Product.findById(productId).select(
+      "title_ar description_ar coverImage productImages originalPrice region verificationStatus rejectionMsg",
+    );
+  } else if (req.auth?.role === "admin") {
+    query = Product.findById(productId);
+  } else {
+    query = Product.findOne({
+      _id: productId,
+      verificationStatus: "approved",
+    }).select("-seller -verificationStatus -rejectionMsg -originalPrice");
+  }
+
+  const product = await query.populate([
+    { path: "region", select: "slugName" },
+    { path: "category", select: "slugName" },
+  ]);
+
   if (!product) return next(new ApiError("Product not found", 404));
+
   res.status(200).json({
     success: true,
     data: { product },
@@ -147,51 +209,68 @@ const getProductByID = asyncFunction(async (req, res, next) => {
 });
 
 const editProduct = asyncFunction(async (req, res, next) => {
-  let region = req.body.region;
-  let regionInput;
-  let officialRegions;
-  if (region) {
-    regionInput = Array.isArray(region) ? region : [region];
-    officialRegions = regionInput.map((slug) =>
-      getNameFromSlug(slug, REGIONS_INFO),
-    );
-
-    if (officialRegions.includes(undefined)) {
-      return next(new ApiError("Invalid Region name", 400));
-    }
-  }
-  if (req.body.region && !Array.isArray(req.body.region)) {
-    req.body.region = [req.body.region];
-  }
-  req.body.region = officialRegions;
-
+  const updateData = { ...req.body };
   if (req.body.category)
     return next(
-      new ApiError("You are not allowed to enter a category name", 400),
+      new ApiError("Seller is not allowed to change product's category"),
     );
+  if (req.body.title_ar) updateData.title_en = null;
+
+  if (req.body.description_ar) updateData.description_en = null;
+
+  const regionExists = await Region.findOne({ slugName: req.body.region });
+  if (!regionExists)
+    return next(new ApiError("This region does not exist", 404));
+  updateData.region = regionExists._id;
+
+  if (req.body.originalPrice) {
+    const percentage = 0.1;
+    updateData.finalPrice = req.body.originalPrice * (1 + percentage);
+  }
+
+  updateData.verificationStatus = "pending";
 
   const product = await Product.findOneAndUpdate(
     { _id: req.params.productId, seller: req.params.id },
-    {
-      ...req.body,
-      verificationStatus: "pending",
-    },
+    updateData,
     {
       returnDocument: "after",
       runValidators: true,
     },
-  );
+  )
+    .select(
+      "title_ar description_ar coverImage productImages originalPrice region verificationStatus rejectionMsg",
+    )
+    .populate("region", "slugName");
 
   if (!product) return next(new ApiError("Product not found", 404));
+
+  const result = product.toObject();
+  delete result.finalPrice;
 
   res.status(200).json({
     status: "success",
     message: "Product updated and waiting for approval",
-    data: { product },
+    data: result,
   });
 });
 
-const deleteProduct = factory.delete(Product, "productId");
+const deleteProduct = asyncFunction(async (req, res, next) => {
+  const { id, productId } = req.params;
+  const product = await Product.findOneAndDelete({
+    _id: productId,
+    seller: id,
+  });
+  if (!product) {
+    return next(
+      new ApiError("Product not found or you don't have permission", 404),
+    );
+  }
+  res.status(200).json({
+    success: true,
+    message: "Product deleted successfully",
+  });
+});
 
 module.exports = {
   getAllProducts,

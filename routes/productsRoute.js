@@ -12,7 +12,12 @@ const {
 } = require("../controllers/productController");
 
 const { uploadFiles, processFiles } = require("../middlewares/uploadImageMW");
-const { protect, restrictTo, isOwner } = require("../middlewares/AuthMW");
+const {
+  protect,
+  restrictTo,
+  optionalAuth,
+  isOwner,
+} = require("../middlewares/AuthMW");
 const validateMW = require("../middlewares/schemaValidatorMW");
 const {
   productValidator,
@@ -25,19 +30,14 @@ router.get("/category", getProductsByCategory);
 
 router.get("/region", getProductsByRegion);
 
+router.get("/:productId", optionalAuth, getProductByID);
+
 router.get(
   "/seller/:id",
   protect,
   isOwner,
   restrictTo("seller"),
   getAllMyProducts,
-);
-
-router.get(
-  "/:productId",
-  protect,
-  restrictTo("buyer", "seller", "admin"),
-  getProductByID,
 );
 
 const productUploads = uploadFiles("productImages", 5);
