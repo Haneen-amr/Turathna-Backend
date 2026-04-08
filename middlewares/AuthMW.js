@@ -35,6 +35,22 @@ const restrictTo = (...roles) => {
   };
 };
 
+const optionalAuth = (req, res, next) => {
+  let token = req.headers.authorization;
+  if (token && token.startsWith("Bearer ")) {
+    token = token.split(" ")[1];
+  }
+  if (!token) return next();
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.auth = decoded;
+    next();
+  } catch (err) {
+    next();
+  }
+};
+
 // Owners (their own account)
 function isOwner(req, res, next) {
   const isOwner = req.auth.userId === req.params.id;
@@ -52,5 +68,6 @@ function isOwner(req, res, next) {
 module.exports = {
   protect,
   restrictTo,
+  optionalAuth,
   isOwner,
 };
