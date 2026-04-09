@@ -181,7 +181,6 @@ const getProductByID = asyncFunction(async (req, res, next) => {
   const { productId } = req.params;
   let query;
 
-  console.log("Auth:", req.auth);
   if (req.auth?.role === "seller") {
     query = Product.findById(productId).select(
       "title_ar description_ar coverImage productImages originalPrice region verificationStatus rejectionMsg",
@@ -229,6 +228,25 @@ const editProduct = asyncFunction(async (req, res, next) => {
   }
 
   updateData.verificationStatus = "pending";
+
+  try {
+    const [translatedTitle, translatedDesc] = await Promise.all([
+      updateData.title_en
+        ? Promise.resolve(updateData.title_en)
+        : autoTranslate(updateData.title_ar || updateData.title_ar, "en", "ar"),
+      updateData.description_en
+        ? Promise.resolve(updateData.description_en)
+        : autoTranslate(
+            updateData.description_ar || updateData.description_ar,
+            "en",
+            "ar",
+          ),
+    ]);
+    updateData.title_en = translatedTitle;
+    updateData.description_en = translatedDesc;
+  } catch (err) {
+    return next(new ApiError(`Translation failed: ${err.message}`, 500));
+  }
 
   const product = await Product.findOneAndUpdate(
     { _id: req.params.productId, seller: req.params.id },
