@@ -5,71 +5,75 @@ const ajv = new Ajv({ allErrors: true, strict: false, coerceTypes: true });
 ajvFormats(ajv);
 ajvErrors(ajv);
 
+const baseProperties = {
+  title_ar: {
+    type: "string",
+    pattern: "^[\\u0600-\\u06FF\\s.,،]+$",
+    errorMessage: "Product Title must be in Arabic",
+  },
+  title_en: {
+    type: "string",
+    pattern: "^[A-Za-z0-9\\s]+$",
+    errorMessage: "Product Title must be in English",
+  },
+  description_ar: {
+    type: "string",
+    pattern: "^[\\u0600-\\u06FF\\s.,،]+$",
+    errorMessage: "Product Description must be in Arabic",
+  },
+  description_en: {
+    type: "string",
+    pattern: "^[A-Za-z0-9\\s]+$",
+    errorMessage: "Product Description must be in English",
+  },
+  heritage_text: {
+    type: "string",
+  },
+  heritage_video: {
+    type: "string",
+  },
+  heritageType: {
+    type: "string",
+    enum: ["text", "video", null],
+  },
+  originalPrice: {
+    type: "number",
+    minimum: 0,
+  },
+  finalPrice: {
+    type: "number",
+    minimum: 0,
+  },
+  productImages: {
+    type: "array",
+    items: { type: "string" },
+    minItems: 1,
+    maxItems: 5,
+    errorMessage: "Please upload 1-5 images of your product",
+  },
+  coverImage: {
+    type: "string",
+  },
+  region: {
+    type: "string",
+    pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+    errorMessage: "Region must be a slug or an array of slugs",
+  },
+  seller: {
+    type: "string",
+    pattern: "^[0-9a-fA-F]{24}$",
+  },
+  verificationStatus: {
+    type: "string",
+    enum: ["pending", "approved", "rejected"],
+    default: "pending",
+  },
+};
+
 const productSchema = {
   type: "object",
   properties: {
-    title_ar: {
-      type: "string",
-      pattern: "^[\\u0600-\\u06FF\\s.,،]+$",
-      errorMessage: "Product Title must be in Arabic",
-    },
-    title_en: {
-      type: "string",
-      pattern: "^[A-Za-z0-9\\s]+$",
-      errorMessage: "Product Title must be in English",
-    },
-    description_ar: {
-      type: "string",
-      pattern: "^[\\u0600-\\u06FF\\s.,،]+$",
-      errorMessage: "Product Description must be in Arabic",
-    },
-    description_en: {
-      type: "string",
-      pattern: "^[A-Za-z0-9\\s]+$",
-      errorMessage: "Product Description must be in English",
-    },
-    heritage_text: {
-      type: "string",
-    },
-    heritage_video: {
-      type: "string",
-    },
-    heritageType: {
-      type: "string",
-      enum: ["text", "video", null],
-    },
-    originalPrice: {
-      type: "number",
-      minimum: 0,
-    },
-    finalPrice: {
-      type: "number",
-      minimum: 0,
-    },
-    productImages: {
-      type: "array",
-      items: { type: "string" },
-      minItems: 1,
-      maxItems: 5,
-      errorMessage: "Please upload 1-5 images of your product",
-    },
-    coverImage: {
-      type: "string",
-    },
-    region: {
-      type: "string",
-      pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$",
-      errorMessage: "Region must be a slug or an array of slugs",
-    },
-    seller: {
-      type: "string",
-      pattern: "^[0-9a-fA-F]{24}$",
-    },
-    verificationStatus: {
-      type: "string",
-      enum: ["pending", "approved", "rejected"],
-      default: "pending",
-    },
+    ...baseProperties,
   },
   required: ["title_ar", "originalPrice", "productImages", "region"],
   additionalProperties: false,
@@ -78,71 +82,11 @@ const productSchema = {
 const updateProductSchema = {
   type: "object",
   properties: {
-    title_ar: {
-      type: "string",
-      pattern: "^[\\u0600-\\u06FF\\s.,،]+$",
-      errorMessage: "Product Title must be in Arabic",
-    },
-    title_en: {
-      type: "string",
-      pattern: "^[A-Za-z0-9\\s]+$",
-      errorMessage: "Product Title must be in English",
-    },
-    description_ar: {
-      type: "string",
-      pattern: "^[\\u0600-\\u06FF\\s.,،]+$",
-      errorMessage: "Product Description must be in Arabic",
-    },
-    description_en: {
-      type: "string",
-      pattern: "^[A-Za-z0-9\\s]+$",
-      errorMessage: "Product Description must be in English",
-    },
-    heritage_text: {
-      type: "string",
-    },
-    heritage_video: {
-      type: "string",
-    },
-    heritageType: {
-      type: "string",
-      enum: ["text", "video", null],
-    },
-    originalPrice: {
-      type: "number",
-      minimum: 0,
-    },
-    finalPrice: {
-      type: "number",
-      minimum: 0,
-    },
-    productImages: {
-      type: "array",
-      items: { type: "string" },
-      minItems: 1,
-      maxItems: 5,
-      errorMessage: "Please upload 1-5 images of your product",
-    },
-    coverImage: {
-      type: "string",
-    },
+    ...baseProperties,
     category: {
       type: "string",
       pattern: "^[\\p{L}0-9]+(?:-[\\p{L}0-9]+)*$",
       errorMessage: "Category must be a valid slug",
-    },
-    region: {
-      type: "string",
-      pattern: "^[\\p{L}0-9]+(?:-[\\p{L}0-9]+)*$",
-    },
-    seller: {
-      type: "string",
-      pattern: "^[0-9a-fA-F]{24}$",
-    },
-    verificationStatus: {
-      type: "string",
-      enum: ["pending", "approved", "rejected"],
-      default: "pending",
     },
     rejectionMsg: {
       type: "string",
