@@ -55,12 +55,18 @@ const authRouter = require("../routes/authRoutes");
 const userRouter = require("../routes/userRoutes");
 const adminRouter = require("../routes/adminRoutes");
 const productRouter = require("../routes/productsRoute");
+const workshopRouter = require("../routes/workshopRoutes");
+const cartRouter = require("../routes/cartRoutes");
+const AIRouter = require("../routes/AIRoutes");
 
 app.use(`${process.env.API_URL}`, uiRouter);
 app.use(`${process.env.API_URL}/user`, authRouter);
 app.use(`${process.env.API_URL}/user`, userRouter);
 app.use(`${process.env.API_URL}/admin`, adminRouter);
 app.use(`${process.env.API_URL}/product`, productRouter);
+app.use(`${process.env.API_URL}/workshop`, workshopRouter);
+app.use(`${process.env.API_URL}/cart`, cartRouter);
+app.use(`${process.env.API_URL}/chatbot`, AIRouter);
 
 app.all(/(.*)/, (req, res, next) => {
   next(new ApiError(`Can't find this route: ${req.originalUrl}`, 404));

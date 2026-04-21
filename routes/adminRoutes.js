@@ -8,6 +8,9 @@ const {
   getPendingProducts,
   acceptProduct,
   rejectProduct,
+  getPendingWorkshops,
+  acceptWorkshop,
+  rejectWorkshop,
 } = require("../controllers/adminController");
 const { uploadFiles, processFiles } = require("../middlewares/uploadImageMW");
 const { protect, restrictTo } = require("../middlewares/AuthMW");
@@ -16,6 +19,9 @@ const { updateValidator } = require("../utils/validators/userValidator");
 const {
   updateProductValidator,
 } = require("../utils/validators/productValidator");
+const {
+  updateWorkshopValidator,
+} = require("../utils/validators/workshopValidator");
 
 router.get("/seller/pending", protect, restrictTo("admin"), getPendingSellers);
 
@@ -37,7 +43,7 @@ router.get(
 );
 
 router.patch(
-  "/product/:id/approve",
+  "/product/:productId/approve",
   protect,
   restrictTo("admin"),
   uploadFiles("heritage_video", 1),
@@ -47,10 +53,35 @@ router.patch(
 );
 
 router.patch(
-  "/product/:id/reject",
+  "/product/:productId/reject",
   protect,
   restrictTo("admin"),
   rejectProduct,
+);
+
+router.get(
+  "/workshop/pending",
+  protect,
+  restrictTo("admin"),
+  getPendingWorkshops,
+);
+
+const productUploads = uploadFiles("workshopImages", 1);
+router.patch(
+  "/workshop/:workshopId/approve",
+  productUploads,
+  processFiles("workshopImages"),
+  protect,
+  restrictTo("admin"),
+  validateMW(updateWorkshopValidator),
+  acceptWorkshop,
+);
+
+router.patch(
+  "/workshop/:workshopId/reject",
+  protect,
+  restrictTo("admin"),
+  rejectWorkshop,
 );
 
 module.exports = router;
