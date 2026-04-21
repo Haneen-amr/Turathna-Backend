@@ -66,8 +66,11 @@ router.get(
   getPendingWorkshops,
 );
 
+const productUploads = uploadFiles("workshopImages", 1);
 router.patch(
   "/workshop/:workshopId/approve",
+  productUploads,
+  processFiles("workshopImages"),
   protect,
   restrictTo("admin"),
   validateMW(updateWorkshopValidator),
