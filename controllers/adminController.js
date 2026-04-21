@@ -17,7 +17,11 @@ const getPendingSellers = asyncFunction(async (req, res, next) => {
     .sort("-createdAt");
 
   if (sellersList.length === 0) {
-    return next(new ApiError("No pending sellers found", 404));
+    return res.status(200).json({
+      status: "success",
+      message: "No pending workshops found",
+      data: { sellers: [] },
+    });
   }
   res.status(200).json({
     status: "success",
@@ -65,7 +69,11 @@ const getPendingProducts = asyncFunction(async (req, res, next) => {
     .sort("-createdAt");
 
   if (productsList.length === 0) {
-    return next(new ApiError("No pending products found", 404));
+    return res.status(200).json({
+      status: "success",
+      message: "No pending products found",
+      data: { products: [] },
+    });
   }
   res.status(200).json({
     status: "success",
@@ -230,7 +238,11 @@ const getPendingWorkshops = asyncFunction(async (req, res, next) => {
     .sort("-createdAt");
 
   if (workshopsList.length === 0) {
-    return next(new ApiError("No pending workshops found", 404));
+    return res.status(200).json({
+      status: "success",
+      message: "No pending workshops found",
+      data: { workshops: [] },
+    });
   }
   res.status(200).json({
     status: "success",
@@ -253,6 +265,33 @@ const acceptWorkshop = asyncFunction(async (req, res, next) => {
   if (req.body.originalPrice) {
     const percentage = 0.2;
     updateData.finalPrice = req.body.originalPrice * (1 + percentage);
+  }
+
+  const { title_ar, description_ar } = updateData;
+  const { title_en, description_en } = updateData;
+
+  try {
+    const translationPromises = [];
+    if (title_ar && !title_en) {
+      translationPromises.push(
+        autoTranslate(title_ar, "en", "ar").then(
+          (res) => (updateData.title_en = res),
+        ),
+      );
+    }
+    if (description_ar && !description_en) {
+      translationPromises.push(
+        autoTranslate(description_ar, "en", "ar").then(
+          (res) => (updateData.description_en = res),
+        ),
+      );
+    }
+
+    if (translationPromises.length > 0) {
+      await Promise.all(translationPromises);
+    }
+  } catch (err) {
+    return next(new ApiError(`Translation failed: ${err.message}`, 500));
   }
 
   const updatedWorkshop = await Workshop.findByIdAndUpdate(
