@@ -16,7 +16,11 @@ const getAllProducts = asyncFunction(async (req, res, next) => {
     .sort("-createdAt");
 
   if (productsList.length === 0) {
-    return next(new ApiError("No products are available", 404));
+    return res.status(200).json({
+      status: "success",
+      message: "No products found",
+      data: { products: [] },
+    });
   }
 
   res.status(200).json({
@@ -45,7 +49,11 @@ const getProductsByCategory = asyncFunction(async (req, res, next) => {
     .sort("-createdAt");
 
   if (productsList.length === 0) {
-    return next(new ApiError("No products found", 404));
+    return res.status(200).json({
+      status: "success",
+      message: "No products found",
+      data: { products: [] },
+    });
   }
   res.status(200).json({
     status: "success",
@@ -73,7 +81,11 @@ const getProductsByRegion = asyncFunction(async (req, res, next) => {
     .sort("-createdAt");
 
   if (productsList.length === 0) {
-    return next(new ApiError("No products found", 404));
+    return res.status(200).json({
+      status: "success",
+      message: "No products found",
+      data: { products: [] },
+    });
   }
   res.status(200).json({
     status: "success",
@@ -95,8 +107,13 @@ const getAllMyProducts = asyncFunction(async (req, res, next) => {
       "title_ar description_ar coverImage productImages originalPrice verificationStatus rejectionMsg",
     )
     .sort("-createdAt");
-  if (products.length === 0)
-    return next(new ApiError("This seller has no products yet", 404));
+  if (products.length === 0) {
+    return res.status(200).json({
+      status: "success",
+      message: "No products found",
+      data: { products: [] },
+    });
+  }
 
   res.status(200).json({
     status: "success",
@@ -275,23 +292,6 @@ const editProduct = asyncFunction(async (req, res, next) => {
 
   const productObj = product.toObject();
 
-  // //to merge updates with the original data
-  // if (productObj.pendingUpdate) {
-  //   const pending = productObj.pendingUpdate;
-
-  //   // Only merge fields that actually exist in pendingUpdate
-  //   Object.keys(pending).forEach((key) => {
-  //     if (
-  //       pending[key] !== undefined &&
-  //       pending[key] !== null &&
-  //       !(Array.isArray(pending[key]) && pending[key].length === 0)
-  //     ) {
-  //       productObj[key] = pending[key];
-  //     }
-  //   });
-  // }
-
-  // delete productObj.pendingUpdate; //to prevent duplicates
   delete productObj.finalPrice;
   delete productObj.heritage_text;
   delete productObj.heritage_video;
