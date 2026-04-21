@@ -18,12 +18,12 @@ const baseProperties = {
   },
   description_ar: {
     type: "string",
-    pattern: "^[\\u0600-\\u06FF\\s.,،]+$",
+    pattern: "^[\\u0600-\\u06FF0-9\\s.,،!@#$%^&*()_+=\\-\\[\\]{}|;:'\"<>?]+$",
     errorMessage: "Product Description must be in Arabic",
   },
   description_en: {
     type: "string",
-    pattern: "^[A-Za-z0-9\\s]+$",
+    pattern: "^[A-Za-z0-9\\s.,!@#$%^&*()_+=\\-\\[\\]{}|;:'\"<>?]+$",
     errorMessage: "Product Description must be in English",
   },
   heritage_text: {

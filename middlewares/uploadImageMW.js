@@ -66,6 +66,9 @@ const processFiles = (imageFieldName) => {
         (file) =>
           `${req.protocol}://${req.get("host")}/public/uploads/${file.filename}`,
       );
+      if (imageFieldName === "workshopImages") {
+        req.body.coverImage = req.body.workshopImages[0];
+      }
     }
     // Handle Product Images
     if (req.files.productImages) {

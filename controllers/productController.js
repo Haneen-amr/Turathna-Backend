@@ -163,12 +163,12 @@ const addProduct = asyncFunction(async (req, res, next) => {
     category: null,
   });
 
-  let result = newProduct.toObject();
-  delete result.finalPrice;
-  result = await Product.findById(newProduct._id).populate(
+  let result = await Product.findById(newProduct._id).populate(
     "region",
     "slugName",
   );
+  result = result.toObject();
+  delete result.finalPrice;
 
   res.status(201).json({
     status: "success",
@@ -183,10 +183,13 @@ const getProductByID = asyncFunction(async (req, res, next) => {
 
   if (req.auth?.role === "seller") {
     query = Product.findById(productId).select(
-      "title_ar description_ar coverImage productImages originalPrice region verificationStatus rejectionMsg",
+      "-title_en -description_en -finalPrice -category -heritage_text -heritage_video -heritageType",
     );
   } else if (req.auth?.role === "admin") {
-    query = Product.findById(productId);
+    query = Product.findById(productId).populate(
+      "pendingUpdate.region",
+      "slugName",
+    );
   } else {
     query = Product.findOne({
       _id: productId,
@@ -213,9 +216,6 @@ const editProduct = asyncFunction(async (req, res, next) => {
     return next(
       new ApiError("Seller is not allowed to change product's category"),
     );
-  if (req.body.title_ar) updateData.title_en = null;
-
-  if (req.body.description_ar) updateData.description_en = null;
 
   const regionExists = await Region.findOne({ slugName: req.body.region });
   if (!regionExists)
@@ -227,49 +227,81 @@ const editProduct = asyncFunction(async (req, res, next) => {
     updateData.finalPrice = req.body.originalPrice * (1 + percentage);
   }
 
-  updateData.verificationStatus = "pending";
-
   try {
-    const [translatedTitle, translatedDesc] = await Promise.all([
-      updateData.title_en
-        ? Promise.resolve(updateData.title_en)
-        : autoTranslate(updateData.title_ar || updateData.title_ar, "en", "ar"),
-      updateData.description_en
-        ? Promise.resolve(updateData.description_en)
-        : autoTranslate(
-            updateData.description_ar || updateData.description_ar,
-            "en",
-            "ar",
-          ),
-    ]);
-    updateData.title_en = translatedTitle;
-    updateData.description_en = translatedDesc;
+    const translationPromises = [];
+    if (updateData.title_ar && !updateData.title_en) {
+      translationPromises.push(
+        autoTranslate(updateData.title_ar, "en", "ar").then(
+          (res) => (updateData.title_en = res),
+        ),
+      );
+    }
+    if (updateData.description_ar && !updateData.description_en) {
+      translationPromises.push(
+        autoTranslate(updateData.description_ar, "en", "ar").then(
+          (res) => (updateData.description_en = res),
+        ),
+      );
+    }
+    await Promise.all(translationPromises);
   } catch (err) {
     return next(new ApiError(`Translation failed: ${err.message}`, 500));
   }
 
+  const imageFields = ["productImages"];
+  imageFields.forEach((field) => {
+    if (Array.isArray(updateData[field]) && updateData[field].length === 0) {
+      delete updateData[field];
+    }
+  });
+
   const product = await Product.findOneAndUpdate(
     { _id: req.params.productId, seller: req.params.id },
-    updateData,
+    {
+      $set: {
+        pendingUpdate: updateData,
+        verificationStatus: "pending",
+      },
+    },
     {
       returnDocument: "after",
       runValidators: true,
     },
   )
-    .select(
-      "title_ar description_ar coverImage productImages originalPrice region verificationStatus rejectionMsg",
-    )
-    .populate("region", "slugName");
+    .populate("region", "slugName")
+    .populate("pendingUpdate.region", "slugName");
 
   if (!product) return next(new ApiError("Product not found", 404));
 
-  const result = product.toObject();
-  delete result.finalPrice;
+  const productObj = product.toObject();
+
+  // //to merge updates with the original data
+  // if (productObj.pendingUpdate) {
+  //   const pending = productObj.pendingUpdate;
+
+  //   // Only merge fields that actually exist in pendingUpdate
+  //   Object.keys(pending).forEach((key) => {
+  //     if (
+  //       pending[key] !== undefined &&
+  //       pending[key] !== null &&
+  //       !(Array.isArray(pending[key]) && pending[key].length === 0)
+  //     ) {
+  //       productObj[key] = pending[key];
+  //     }
+  //   });
+  // }
+
+  // delete productObj.pendingUpdate; //to prevent duplicates
+  delete productObj.finalPrice;
+  delete productObj.heritage_text;
+  delete productObj.heritage_video;
+  delete productObj.heritageType;
+  delete productObj.category;
 
   res.status(200).json({
     status: "success",
     message: "Product updated and waiting for approval",
-    data: result,
+    data: productObj,
   });
 });
 

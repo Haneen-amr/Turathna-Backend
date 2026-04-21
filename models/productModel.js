@@ -5,11 +5,9 @@ const productSchema = new mongoose.Schema(
     title_ar: {
       type: String,
       required: true,
-      trim: true,
     },
     title_en: {
       type: String,
-      trim: true,
     },
     description_ar: {
       type: String,
@@ -29,11 +27,11 @@ const productSchema = new mongoose.Schema(
     },
     originalPrice: {
       type: Number,
-      set: (v) => Math.round(v),
+      set: (v) => (v ? Math.round(v) : v),
     },
     finalPrice: {
       type: Number,
-      set: (v) => Math.round(v),
+      set: (v) => (v ? Math.round(v) : v),
     },
     coverImage: {
       type: String,
@@ -66,6 +64,40 @@ const productSchema = new mongoose.Schema(
     },
     rejectionMsg: {
       type: String,
+    },
+
+    pendingUpdate: {
+      title_ar: {
+        type: String,
+      },
+      title_en: {
+        type: String,
+      },
+      description_ar: {
+        type: String,
+      },
+      description_en: {
+        type: String,
+      },
+      originalPrice: {
+        type: Number,
+        set: (v) => (v ? Math.round(v) : v),
+      },
+      finalPrice: {
+        type: Number,
+        set: (v) => (v ? Math.round(v) : v),
+      },
+      coverImage: {
+        type: String,
+      },
+      productImages: {
+        type: [String],
+      },
+      region: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Region",
+      },
+      //updatedAt: { type: Date, default: Date.now },
     },
   },
   {
