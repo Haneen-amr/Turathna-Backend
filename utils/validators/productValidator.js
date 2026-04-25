@@ -13,8 +13,8 @@ const baseProperties = {
   },
   title_en: {
     type: "string",
-    pattern: "^[A-Za-z0-9\\s]+$",
-    errorMessage: "Product Title must be in English",
+    // pattern: "^[A-Za-z0-9\\s]+$",
+    // errorMessage: "Product Title must be in English",
   },
   description_ar: {
     type: "string",
@@ -23,8 +23,8 @@ const baseProperties = {
   },
   description_en: {
     type: "string",
-    pattern: "^[A-Za-z0-9\\s.,!@#$%^&*()_+=\\-\\[\\]{}|;:'\"<>?]+$",
-    errorMessage: "Product Description must be in English",
+    // pattern: "^[A-Za-z0-9\\s.,!@#$%^&*()_+=\\-\\[\\]{}|;:'\"<>?]+$",
+    // errorMessage: "Product Description must be in English",
   },
   heritage_text: {
     type: "string",
