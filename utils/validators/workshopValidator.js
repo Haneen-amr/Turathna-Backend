@@ -8,8 +8,8 @@ ajvErrors(ajv);
 const baseProperties = {
   title_ar: {
     type: "string",
-    pattern: "^[\\u0600-\\u06FF\\s.,،]+$",
-    errorMessage: "Workshop Title must be in Arabic",
+    // pattern: "^[\\u0600-\\u06FF\\s.,،]+$",
+    // errorMessage: "Workshop Title must be in Arabic",
   },
   title_en: {
     type: "string",
@@ -18,8 +18,8 @@ const baseProperties = {
   },
   description_ar: {
     type: "string",
-    pattern: "^[\\u0600-\\u06FF\\s.,،]+$",
-    errorMessage: "Workshop Description must be in Arabic",
+    // pattern: "^[\\u0600-\\u06FF\\s.,،]+$",
+    // errorMessage: "Workshop Description must be in Arabic",
   },
   description_en: {
     type: "string",
@@ -44,11 +44,6 @@ const baseProperties = {
   coverImage: {
     type: "string",
   },
-  // region: {
-  //   type: "string",
-  //   pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$",
-  //   errorMessage: "Region must be a slug or an array of slugs",
-  // },
   date: {
     type: "string",
     format: "date",
