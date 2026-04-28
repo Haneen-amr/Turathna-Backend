@@ -8,8 +8,8 @@ ajvErrors(ajv);
 const baseProperties = {
   title_ar: {
     type: "string",
-    pattern: "^[\\u0600-\\u06FF\\s.,،]+$",
-    errorMessage: "Product Title must be in Arabic",
+    // pattern: "^[\\u0600-\\u06FF\\s.,،]+$",
+    // errorMessage: "Product Title must be in Arabic",
   },
   title_en: {
     type: "string",
@@ -18,8 +18,8 @@ const baseProperties = {
   },
   description_ar: {
     type: "string",
-    pattern: "^[\\u0600-\\u06FF0-9\\s.,،!@#$%^&*()_+=\\-\\[\\]{}|;:'\"<>?]+$",
-    errorMessage: "Product Description must be in Arabic",
+    // pattern: "^[\\u0600-\\u06FF0-9\\s.,،!@#$%^&*()_+=\\-\\[\\]{}|;:'\"<>?]+$",
+    // errorMessage: "Product Description must be in Arabic",
   },
   description_en: {
     type: "string",
