@@ -43,7 +43,7 @@ const orderSchema = new mongoose.Schema(
       floor: String,
       apartment: String,
       state: String,
-      postal_code: { type: String, default: "12345" }, // Paymob بيطلبه ساعات
+      postal_code: { type: String, default: "12345" },
     },
     subtotal: {
       type: Number,
