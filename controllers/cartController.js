@@ -3,7 +3,7 @@ const ApiError = require("../utils/apiError");
 const Cart = require("../models/cartModel");
 
 const addToCart = asyncFunction(async (req, res, next) => {
-  const buyerId = req.auth._id;
+  const buyerId = req.auth.userId;
   const { productId } = req.body;
 
   let buyerCart = await Cart.findOne({ buyer: buyerId });
@@ -33,7 +33,7 @@ const addToCart = asyncFunction(async (req, res, next) => {
 });
 
 const getCart = asyncFunction(async (req, res, next) => {
-  const buyerId = req.auth._id;
+  const buyerId = req.auth.userId;
   const buyerCart = await Cart.findOne({ buyer: buyerId }).populate({
     path: "products.product",
     select: "title_ar title_en finalPrice coverImage verificationStatus",
@@ -87,7 +87,7 @@ const getCart = asyncFunction(async (req, res, next) => {
 });
 
 const removeFromCart = asyncFunction(async (req, res, next) => {
-  const buyerId = req.auth._id;
+  const buyerId = req.auth.userId;
   const { productId } = req.params;
 
   const buyerCart = await Cart.findOne({ buyer: buyerId });
@@ -109,7 +109,7 @@ const removeFromCart = asyncFunction(async (req, res, next) => {
 });
 
 const clearCart = asyncFunction(async (req, res, next) => {
-  const buyerId = req.auth._id;
+  const buyerId = req.auth.userId;
   const buyerCart = await Cart.findOne({ buyer: buyerId });
   if (!buyerCart) return next(new ApiError("Cart not found", 404));
 
@@ -122,7 +122,7 @@ const clearCart = asyncFunction(async (req, res, next) => {
 });
 
 const decreaseQuantity = asyncFunction(async (req, res, next) => {
-  const buyerId = req.auth._id;
+  const buyerId = req.auth.userId;
   const { productId } = req.params;
 
   const buyerCart = await Cart.findOne({ buyer: buyerId });
