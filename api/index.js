@@ -2,6 +2,7 @@ const path = require("path");
 const express = require("express");
 const { i18next, middleware } = require("../i18n");
 const { getTranslation } = require("../i18n/smartTranslate");
+const axios = require("axios");
 const cors = require("cors");
 const dotenv = require("dotenv").config({
   path: path.join(__dirname, "..", ".env"),
@@ -57,6 +58,8 @@ const adminRouter = require("../routes/adminRoutes");
 const productRouter = require("../routes/productsRoute");
 const workshopRouter = require("../routes/workshopRoutes");
 const cartRouter = require("../routes/cartRoutes");
+const orderRouter = require("../routes/orderRoutes");
+const paymentRouter = require("../routes/paymentRoutes");
 const AIRouter = require("../routes/AIRoutes");
 
 app.use(`${process.env.API_URL}`, uiRouter);
@@ -66,6 +69,8 @@ app.use(`${process.env.API_URL}/admin`, adminRouter);
 app.use(`${process.env.API_URL}/product`, productRouter);
 app.use(`${process.env.API_URL}/workshop`, workshopRouter);
 app.use(`${process.env.API_URL}/cart`, cartRouter);
+app.use(`${process.env.API_URL}/order`, orderRouter);
+app.use(`${process.env.API_URL}/payment`, paymentRouter);
 app.use(`${process.env.API_URL}/chatbot`, AIRouter);
 
 app.all(/(.*)/, (req, res, next) => {
