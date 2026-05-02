@@ -92,10 +92,12 @@ const checkout = asyncFunction(async (req, res, next) => {
 const checkoutResponse = asyncFunction(async (req, res) => {
   // Paymob send them
   const { success, order } = req.query;
+  const FRONTEND_URL = "https://nearest-corner-tubby.ngrok-free.dev";
+
   if (success === "true") {
-    return res.redirect(`http://localhost:5173/order-success?orderId=${order}`);
+    return res.redirect(`${FRONTEND_URL}/order-success?orderId=${order}`);
   } else {
-    return res.redirect(`http://localhost:5173/cart?error=payment_failed`);
+    return res.redirect(`${FRONTEND_URL}/cart?error=payment_failed`);
   }
 });
 
