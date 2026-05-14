@@ -60,6 +60,7 @@ const workshopRouter = require("../routes/workshopRoutes");
 const cartRouter = require("../routes/cartRoutes");
 const orderRouter = require("../routes/orderRoutes");
 const paymentRouter = require("../routes/paymentRoutes");
+const reservationRouter = require("../routes/reservationRoutes");
 const AIRouter = require("../routes/AIRoutes");
 
 app.use(`${process.env.API_URL}`, uiRouter);
@@ -71,6 +72,7 @@ app.use(`${process.env.API_URL}/workshop`, workshopRouter);
 app.use(`${process.env.API_URL}/cart`, cartRouter);
 app.use(`${process.env.API_URL}/order`, orderRouter);
 app.use(`${process.env.API_URL}/payment`, paymentRouter);
+app.use(`${process.env.API_URL}/reservation`, reservationRouter);
 app.use(`${process.env.API_URL}/chatbot`, AIRouter);
 
 app.all(/(.*)/, (req, res, next) => {
