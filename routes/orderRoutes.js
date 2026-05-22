@@ -11,6 +11,12 @@ const { protect, restrictTo, isOwner } = require("../middlewares/AuthMW");
 
 router.post("/checkout", protect, checkout);
 router.get("/checkout", checkoutResponse);
-router.get("/seller/:sellerId", protect, restrictTo("seller"), getAllMyOrders);
+router.get(
+  "/seller/:id",
+  protect,
+  isOwner,
+  restrictTo("seller"),
+  getAllMyOrders,
+);
 
 module.exports = router;

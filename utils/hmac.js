@@ -1,7 +1,6 @@
 const crypto = require("crypto");
 
 function verifyHmac(obj, hmacFromPaymob, secret) {
-  // الترتيب ده إجباري من ديسكربشن بي موب عشان الـ Hash يطلع صح
   const concatenatedString =
     obj.amount_cents +
     obj.created_at +
