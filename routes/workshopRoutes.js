@@ -21,7 +21,7 @@ const {
   updateWorkshopValidator,
 } = require("../utils/validators/workshopValidator");
 
-router.get("/", getAllWorkshops);
+router.get("/", optionalAuth, getAllWorkshops);
 
 router.get("/:workshopId", optionalAuth, getWorkshopByID);
 

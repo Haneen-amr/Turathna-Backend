@@ -262,9 +262,9 @@ const acceptWorkshop = asyncFunction(async (req, res, next) => {
     rejectionMsg: null,
   };
 
-  if (req.body.originalPrice) {
+  if (body.originalPrice) {
     const percentage = 0.2;
-    updateData.finalPrice = req.body.originalPrice * (1 + percentage);
+    updateData.finalPrice = body.originalPrice * (1 + percentage);
   }
 
   const { title_ar, description_ar } = updateData;
