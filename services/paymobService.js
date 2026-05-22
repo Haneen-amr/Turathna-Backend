@@ -1,5 +1,5 @@
 const axios = require("axios");
-const asyncFunction = require("../middlewares/asyncMW");
+//const asyncFunction = require("../middlewares/asyncMW");
 
 const BASE_URL = "https://accept.paymob.com/api";
 
@@ -14,7 +14,7 @@ async function createOrder(token, amount) {
   const res = await axios.post(`${BASE_URL}/ecommerce/orders`, {
     auth_token: token,
     delivery_needed: "false",
-    amount_cents: amount,
+    amount_cents: Math.round(amount * 100),
     currency: "EGP",
     items: [],
   });
@@ -60,7 +60,7 @@ const generatePaymentLink = async (order) => {
 
   const paymentToken = await createPaymentKey(
     token,
-    paymobOrder.id,
+    Math.round(paymobOrder.id),
     order.totalPrice * 100,
     process.env.PAYMOB_INTEGRATION_ID,
     order.addressDetails,
