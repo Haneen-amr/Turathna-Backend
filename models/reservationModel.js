@@ -7,9 +7,13 @@ const reservationSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    userDetails: {
+    buyerDetails: {
       firstname: { type: String },
       lastname: { type: String },
+      phone: { type: String },
+    },
+    sellerDetails: {
+      name: { type: String },
       phone: { type: String },
     },
     workshop: {
@@ -20,10 +24,14 @@ const reservationSchema = new mongoose.Schema(
     workshopDetails: {
       title_ar: { type: String, required: true },
       title_en: { type: String, required: true },
+      description_ar: { type: String, required: true },
+      description_en: { type: String, required: true },
       finalPrice: { type: Number, required: true },
       date: { type: String, required: true },
       time: { type: String, required: true },
       coverImage: { type: String },
+      workshopOffline: { type: Boolean },
+      workshopOnline: { type: Boolean },
     },
     isReserved: {
       type: Boolean,
