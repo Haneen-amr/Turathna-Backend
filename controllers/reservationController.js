@@ -32,7 +32,7 @@ const postReservation = asyncFunction(async (req, res, next) => {
 
   workshop = await workshop.populate("seller", "name phone");
 
-  const newReservation = await Reservation.create({
+  let newReservation = await Reservation.create({
     user: userId,
     buyerDetails: {
       firstname: firstname || user.firstname,
@@ -58,6 +58,9 @@ const postReservation = asyncFunction(async (req, res, next) => {
     },
     isReserved: true,
   });
+
+  newReservation = newReservation.toObject();
+  delete newReservation.sellerDetails;
 
   return res.status(201).json({
     status: "success",
@@ -95,7 +98,13 @@ const getAllReservations = asyncFunction(async (req, res, next) => {
 });
 
 const getAllMyReservations = asyncFunction(async (req, res, next) => {
-  const { sellerId } = req.params;
+  const { id } = req.params;
+  console.log(id);
+  const seller = await User.findById(id);
+  console.log(seller);
+  console.log(req.auth.userId);
+  if (!seller || seller.role !== "seller")
+    return next(new ApiError("Seller not found", 404));
 
   const now = new Date().toISOString().split("T")[0];
 
@@ -103,7 +112,7 @@ const getAllMyReservations = asyncFunction(async (req, res, next) => {
     // filters seller's workshops
     {
       $match: {
-        seller: new mongoose.Types.ObjectId(sellerId),
+        seller: new mongoose.Types.ObjectId(id),
         date: { $gte: now },
       },
     },
