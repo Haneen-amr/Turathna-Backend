@@ -13,8 +13,9 @@ const { protect, restrictTo, isOwner } = require("../middlewares/AuthMW");
 router.post("/:workshopId", protect, restrictTo("buyer"), postReservation);
 
 router.get(
-  "/seller/:sellerId",
+  "/seller/:id",
   protect,
+  isOwner,
   restrictTo("seller"),
   getAllMyReservations,
 );
