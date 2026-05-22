@@ -22,7 +22,7 @@ const postReservation = asyncFunction(async (req, res, next) => {
   const user = await User.findById(userId);
   if (!user) return next(new ApiError("User not found", 404));
 
-  const workshop = await Workshop.findOneAndUpdate(
+  let workshop = await Workshop.findOneAndUpdate(
     { _id: workshopId, seats: { $gt: 0 }, verificationStatus: "approved" },
     { $inc: { seats: -1 } },
     { returnDocument: "after" },
@@ -30,27 +30,39 @@ const postReservation = asyncFunction(async (req, res, next) => {
   if (!workshop)
     return next(new ApiError("Workshop not found or fully booked", 404));
 
-  const newReservation = await Reservation.create({
+  workshop = await workshop.populate("seller", "name phone");
+
+  let newReservation = await Reservation.create({
     user: userId,
-    userDetails: {
+    buyerDetails: {
       firstname: firstname || user.firstname,
       lastname: lastname || user.lastname,
       phone: phone || user.phone,
     },
+    sellerDetails: {
+      name: workshop.seller?.name,
+      phone: workshop.seller?.phone,
+    },
     workshop: workshopId,
     workshopDetails: {
-      workshop: workshop._id,
       title_ar: workshop.title_ar,
       title_en: workshop.title_en,
+      description_ar: workshop.title_ar,
+      description_en: workshop.title_en,
       finalPrice: workshop.finalPrice,
       date: workshop.date,
       time: workshop.time,
       coverImage: workshop.coverImage,
+      workshopOffline: workshop.workshopOffline,
+      workshopOnline: workshop.workshopOnline,
     },
     isReserved: true,
   });
 
-  return res.status(200).json({
+  newReservation = newReservation.toObject();
+  delete newReservation.sellerDetails;
+
+  return res.status(201).json({
     status: "success",
     message: "Workshop Reserved Successfully",
     data: { reservation: newReservation },
@@ -58,34 +70,52 @@ const postReservation = asyncFunction(async (req, res, next) => {
 });
 
 const getAllReservations = asyncFunction(async (req, res, next) => {
-  let filter = { isReserved: true };
+  const now = new Date().toISOString().split("T")[0];
+  let filter = { isReserved: true, "workshopDetails.date": { $gte: now } };
 
   if (req.auth.role === "buyer") {
     filter.user = req.auth.userId;
   }
 
   const reservationsList = await Reservation.find(filter)
-    .populate({
-      path: "workshop",
-      select: "description_ar description_en",
-    })
-    .sort("-createdAt");
+    .select("-__v")
+    .sort("-createdAt")
+    .lean();
 
   if (!reservationsList || reservationsList.length === 0)
     return next(new ApiError("No Workshops Reservations Available", 404));
 
+  const data =
+    req.auth.role === "buyer"
+      ? reservationsList.map(({ sellerDetails, ...rest }) => rest) // hides seller info from buyer
+      : reservationsList; // admins see everything, including sellerDetails
+
   res.status(200).json({
     status: "success",
-    results: reservationsList.length,
-    data: { reservationsList },
+    results: data.length,
+    data: { data },
   });
 });
 
 const getAllMyReservations = asyncFunction(async (req, res, next) => {
-  const { sellerId } = req.params;
+  const { id } = req.params;
+  console.log(id);
+  const seller = await User.findById(id);
+  console.log(seller);
+  console.log(req.auth.userId);
+  if (!seller || seller.role !== "seller")
+    return next(new ApiError("Seller not found", 404));
+
+  const now = new Date().toISOString().split("T")[0];
+
   const stats = await Workshop.aggregate([
     // filters seller's workshops
-    { $match: { seller: new mongoose.Types.ObjectId(sellerId) } },
+    {
+      $match: {
+        seller: new mongoose.Types.ObjectId(id),
+        date: { $gte: now },
+      },
+    },
     // Connect Reservations with Workshops (Lookup)
     {
       $lookup: {
@@ -114,7 +144,7 @@ const getAllMyReservations = asyncFunction(async (req, res, next) => {
         totalReserved: { $size: "$attendees" },
         attendees: {
           _id: 1,
-          userDetails: 1,
+          buyerDetails: 1,
           createdAt: 1,
         },
       },

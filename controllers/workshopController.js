@@ -1,7 +1,7 @@
 const asyncFunction = require("../middlewares/asyncMW");
 const ApiError = require("../utils/apiError");
 const Workshop = require("../models/workshopModel");
-//const Reservation = require("../models/reservationModel");
+const Reservation = require("../models/reservationModel");
 const User = require("../models/userModel");
 const { autoTranslate } = require("./translationController");
 
@@ -13,9 +13,13 @@ const getAllWorkshops = asyncFunction(async (req, res, next) => {
     seats: { $gt: 0 },
   };
 
-  if (req.auth?.role === "buyer") {
+  let role = req.auth?.role;
+  let userId = req.auth?.userId || req.auth?._id;
+
+  if (role === "buyer") {
     const myReservations = await Reservation.find({
-      user: req.auth._id,
+      user: userId,
+      isReserved: true,
     }).distinct("workshop");
     delete filterObject.seats;
     filterObject.$or = [
