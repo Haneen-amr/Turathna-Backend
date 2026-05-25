@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const orderSchema = new mongoose.Schema(
   {
-    user: {
+    buyer: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
@@ -28,6 +28,11 @@ const orderSchema = new mongoose.Schema(
         },
         coverImage: {
           type: String,
+        },
+        itemStatus: {
+          type: String,
+          enum: ["pending", "in progress", "finished"],
+          default: "pending",
         },
       },
       { _id: false },
@@ -57,9 +62,6 @@ const orderSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
-    orderDate: {
-      type: Date,
-    },
     paymentMethod: {
       type: String,
       enum: ["online", "cash"],
@@ -72,8 +74,8 @@ const orderSchema = new mongoose.Schema(
     },
     shippingStatus: {
       type: String,
-      enum: ["in progress", "out for delivery", "delivered"],
-      default: "in progress",
+      enum: ["pending", "out for delivery", "delivered"],
+      default: "pending",
     },
 
     paymobOrderId: {

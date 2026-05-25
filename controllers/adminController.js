@@ -5,6 +5,7 @@ const Product = require("../models/productModel");
 const Category = require("../models/categoryModel");
 const Region = require("../models/regionModel");
 const Workshop = require("../models/workshopModel");
+const Order = require("../models/orderModel");
 const { autoTranslate } = require("./translationController");
 
 //***SELLERS***
@@ -329,6 +330,83 @@ const rejectWorkshop = asyncFunction(async (req, res, next) => {
   });
 });
 
+const getAllOrders = asyncFunction(async (req, res, next) => {
+  const orders = await Order.find({
+    $or: [{ isPaid: true }, { paymentMethod: "cash" }],
+    "orderItems.product": { $exists: true },
+  })
+    .populate({
+      path: "orderItems.product",
+      select: "title_ar title_en finalPrice coverImage seller",
+      populate: {
+        path: "seller",
+        select: "name phone",
+      },
+    })
+    .select(
+      "user addressDetails.first_name addressDetails.last_name addressDetails.phone_number addressDetails.street addressDetails.city orderItems.quantity orderStatus shippingStatus isPaid createdAt",
+    )
+    .sort("-createdAt")
+    .lean();
+
+  const ordersList = orders.map((order) => {
+    return {
+      ...order,
+      orderDate: order.createdAt
+        ? order.createdAt.toISOString().split("T")[0]
+        : null,
+    };
+  });
+
+  res.status(200).json({
+    status: "success",
+    results: ordersList.length,
+    data: { ordersList },
+  });
+});
+
+const editShippingStatus = asyncFunction(async (req, res, next) => {
+  const { orderId } = req.params;
+  const { status } = req.body;
+
+  const order = await Order.findById(orderId)
+    .populate({
+      path: "orderItems.product",
+      select: "title_ar title_en finalPrice coverImage seller",
+      populate: {
+        path: "seller",
+        select: "name phone",
+      },
+    })
+    .select(
+      "user addressDetails.first_name addressDetails.last_name addressDetails.phone_number orderItems.quantity orderStatus shippingStatus paymentMethod isPaid createdAt",
+    );
+  if (!order) return next(new ApiError("Order not found", 404));
+
+  if (order.orderStatus !== "finished")
+    return next(
+      new ApiError(
+        "Shipping status can't be updated unless the order is 'finished'",
+        400,
+      ),
+    );
+
+  order.shippingStatus = status;
+
+  if (status == "delivered" && order.paymentMethod == "cash") {
+    order.isPaid = true;
+    order.paidAt = Date.now();
+  }
+
+  await order.save();
+
+  res.status(200).json({
+    status: "success",
+    message: "Shipping status updated successfully!",
+    data: { order },
+  });
+});
+
 module.exports = {
   getPendingSellers,
   getSellerByID,
@@ -339,4 +417,6 @@ module.exports = {
   getPendingWorkshops,
   acceptWorkshop,
   rejectWorkshop,
+  getAllOrders,
+  editShippingStatus,
 };
