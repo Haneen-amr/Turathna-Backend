@@ -56,7 +56,7 @@ async function createPaymentKey(
 const generatePaymentLink = async (order) => {
   const token = await getAuthToken(process.env.PAYMOB_API_KEY);
 
-  const paymobOrder = await createOrder(token, order.totalPrice * 100);
+  const paymobOrder = await createOrder(token, order.totalPrice);
 
   const paymentToken = await createPaymentKey(
     token,
@@ -66,7 +66,7 @@ const generatePaymentLink = async (order) => {
     order.addressDetails,
   );
 
-  order.paymobOrderId = paymobOrder.id;
+  order.paymobOrderId = String(paymobOrder.id);
   await order.save();
 
   return `https://accept.paymob.com/api/acceptance/iframes/${process.env.PAYMOB_IFRAME_ID}?payment_token=${paymentToken}`;
