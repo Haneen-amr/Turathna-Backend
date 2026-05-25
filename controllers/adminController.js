@@ -333,7 +333,6 @@ const rejectWorkshop = asyncFunction(async (req, res, next) => {
 const getAllOrders = asyncFunction(async (req, res, next) => {
   const orders = await Order.find({
     $or: [{ isPaid: true }, { paymentMethod: "cash" }],
-    "orderItems.product": { $exists: true },
   })
     .populate({
       path: "orderItems.product",
@@ -344,7 +343,7 @@ const getAllOrders = asyncFunction(async (req, res, next) => {
       },
     })
     .select(
-      "user addressDetails.first_name addressDetails.last_name addressDetails.phone_number addressDetails.street addressDetails.city orderItems.quantity orderStatus shippingStatus isPaid createdAt",
+      "buyer addressDetails.first_name addressDetails.last_name addressDetails.phone_number addressDetails.street addressDetails.city orderItems.quantity orderStatus shippingStatus isPaid createdAt",
     )
     .sort("-createdAt")
     .lean();

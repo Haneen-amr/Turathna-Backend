@@ -55,7 +55,7 @@ const paymobWebhook = asyncFunction(async (req, res) => {
     console.log(`Payment failed for order: ${transactionData.order.id}`);
     await Order.findOneAndUpdate(
       { paymobOrderId: String(transactionData.order.id) },
-      { orderStatus: "pending" },
+      { orderStatus: "in progress" },
     );
   }
 

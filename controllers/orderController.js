@@ -49,13 +49,15 @@ const checkout = asyncFunction(async (req, res, next) => {
       state: region,
     },
     paymentMethod: paymentMethod,
-    orderStatus: "pending",
+    orderStatus: "in progress",
   });
 
   if (paymentMethod === "online") {
     // call PayMob service
     const paymentUrl = await paymob.generatePaymentLink(newOrder);
-
+    await Cart.findOneAndDelete({ buyer: req.auth.userId });
+    newOrder.isPaid = true;
+    await newOrder.save();
     return res.status(200).json({
       status: "success",
       message: "Redirect to payment",
@@ -66,12 +68,10 @@ const checkout = asyncFunction(async (req, res, next) => {
   } else {
     // create order and delete from cart
     await Cart.findOneAndDelete({ buyer: req.auth.userId });
-    await Order.findOneAndUpdate({ orderStatus: "in progress" });
-
     return res.status(201).json({
       status: "success",
       message: "Order placed successfully!",
-      data: newOrder,
+      data: { newOrder },
     });
   }
 });
