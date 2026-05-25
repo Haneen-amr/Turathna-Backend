@@ -2,7 +2,6 @@ const asyncFunction = require("../middlewares/asyncMW");
 const User = require("../models/userModel");
 const Order = require("../models/orderModel");
 const Cart = require("../models/cartModel");
-// const Product = require("../models/productModel");
 const paymob = require("../services/paymobService");
 const ApiError = require("../utils/apiError");
 
@@ -20,47 +19,17 @@ const checkout = asyncFunction(async (req, res, next) => {
     return next(new Error("Your cart is empty!"));
   }
 
-  // const unapprovedProducts = cart.products.filter(
-  //   (item) => item.product.verificationStatus !== "approved",
-  // );
-  // if (unapprovedProducts.length > 0) {
-  //   const productNames = unapprovedProducts
-  //     .map((item) => item.product.title_en)
-  //     .join(", ");
-  //   return next(
-  //     new ApiError(
-  //       `The following products are not available for purchase yet: ${productNames}`,
-  //       400,
-  //     ),
-  //   );
-  // }
-
   const shippingFees = { cairo: 70, giza: 100 };
   const deliveryFee = shippingFees[region.toLowerCase()] || 120;
   const subtotal = cart.products.reduce((sum, item) => {
-    // const isApproved = item.product.verificationStatus === "approved";
-    // const finalProductPrice = isApproved ? item.product.finalPrice : item.priceStored;
-    // return sum + (finalProductPrice * item.quantity);
-
     return sum + item.product.finalPrice * item.quantity;
   }, 0);
   const totalPrice = subtotal + deliveryFee;
 
   // create a snapshot to be stored as final order
   const newOrder = await Order.create({
-    user: req.auth.userId,
+    buyer: req.auth.userId,
     orderItems: cart.products.map((item) => ({
-      // const isApproved = item.product.verificationStatus === "approved";
-      // const finalProductPrice = isApproved ? item.product.finalPrice : item.priceStored;
-
-      // return {
-      //   product: item.product._id,
-      //   name: item.product.title_en,
-      //   quantity: item.quantity,
-      //   price: finalProductPrice,
-      //   coverImage: item.product.coverImage,
-      // };
-
       product: item.product._id,
       name: item.product.title_en,
       quantity: item.quantity,
@@ -123,37 +92,147 @@ const checkoutResponse = asyncFunction(async (req, res) => {
   }
 });
 
-const getAllMyOrders = asyncFunction(async (req, res, next) => {
-  const { sellerId } = req.params;
-  const seller = await User.findById(sellerId);
-  if (!seller || seller.role !== "seller")
-    return next(new ApiError("Seller not found", 404));
+const getMyOrders = asyncFunction(async (req, res, next) => {
+  const buyerId = req.params.id;
 
-  let orders = await Order.find({ isPaid: true })
+  const buyer = await User.findById(buyerId).select("-password -__v");
+  console.log("Searching for Buyer ID:", buyer);
+  console.log(req.params.id);
+  if (!buyer || buyer.role !== "buyer")
+    return next(new ApiError("Buyer not found", 404));
+
+  const query = {
+    buyer: req.params.id,
+    $or: [{ isPaid: true }, { paymentMethod: "cash" }],
+  };
+
+  let orders = await Order.find(query)
     .populate({
       path: "orderItems.product",
-      select: "title_ar originalPrice coverImage orderStatus seller orderDate",
+      select: "title_ar title_en finalPrice coverImage",
     })
-    .select("orderItems.quantity orderItems.product")
-    .sort("-createdAt");
+    .select(
+      "addressDetails.first_name addressDetails.last_name addressDetails.phone_number orderItems.quantity orderStatus shippingStatus createdAt",
+    )
+    .sort("-createdAt")
+    .lean();
 
-  let filteredItems = []; //to return items based on sellerId
-  orders.forEach((order) => {
-    const sellerItems = order.orderItems.filter(
-      (item) => item.product && item.product.seller.toString() === sellerId,
-    );
-    filteredItems.push(...sellerItems);
+  if (!orders || orders.length === 0)
+    return next(new ApiError("No Orders Available", 404));
+
+  const ordersList = orders.map((order) => {
+    return {
+      ...order,
+      orderDate: order.createdAt
+        ? order.createdAt.toISOString().split("T")[0]
+        : null,
+    };
   });
 
   res.status(200).json({
     status: "success",
-    results: filteredItems.length,
-    data: { orderItems: filteredItems },
+    results: ordersList.length,
+    data: { ordersList },
+  });
+});
+
+const getAllMyOrders = asyncFunction(async (req, res, next) => {
+  const { id } = req.params;
+  const seller = await User.findById(id);
+  if (!seller || seller.role !== "seller")
+    return next(new ApiError("Seller not found", 404));
+
+  let orders = await Order.find({
+    $or: [{ isPaid: true }, { paymentMethod: "cash" }],
+    "orderItems.product": { $exists: true },
+  })
+    .populate({
+      path: "orderItems.product",
+      select: "title_ar originalPrice coverImage seller",
+    })
+    .select("orderItems.quantity orderItems.itemStatus orderStatus createdAt")
+    .sort("-createdAt")
+    .lean();
+
+  const sellerOrders = orders
+    .map((order) => {
+      const orderItems = order.orderItems.filter(
+        (item) =>
+          item.product &&
+          item.product.seller &&
+          item.product.seller.toString() === id,
+      );
+
+      if (orderItems.length > 0) {
+        return {
+          orderId: order._id,
+          orderItems: orderItems,
+          orderStatus: order.orderStatus,
+          orderDate: order.createdAt.toISOString().split("T")[0],
+        };
+      }
+      return null;
+    })
+    .filter((order) => order !== null);
+
+  res.status(200).json({
+    status: "success",
+    results: sellerOrders.length,
+    data: { orders: sellerOrders },
+  });
+});
+
+const editOrderStatus = asyncFunction(async (req, res, next) => {
+  const { orderId, productId } = req.params;
+  const sellerId = req.auth.userId;
+  const status = "finished";
+
+  const order = await Order.findById(orderId)
+    .populate({
+      path: "orderItems.product",
+      match: { seller: sellerId },
+      select: "title_ar originalPrice coverImage seller",
+    })
+    .select("orderItems.quantity orderItems.itemStatus orderStatus createdAt");
+  if (!order) return next(new ApiError("Order not found", 404));
+
+  const itemIndex = order.orderItems.findIndex(
+    (item) => item.product && item.product._id.toString() === productId,
+  );
+
+  if (itemIndex === -1) {
+    // -1 => element not found (index = -1)
+    return next(new ApiError("Item is not found", 403));
+  }
+
+  order.orderItems[itemIndex].itemStatus = status;
+
+  const orderFinished = order.orderItems.every(
+    (item) => item.itemStatus === "finished",
+  );
+
+  if (orderFinished) {
+    order.orderStatus = "finished";
+  }
+
+  await order.save();
+
+  const sellerOrder = order.toObject();
+  sellerOrder.orderItems = sellerOrder.orderItems.filter(
+    (item) => item.product !== null,
+  );
+
+  res.status(200).json({
+    status: "success",
+    message: "Item status updated to 'Finished'",
+    data: { sellerOrder },
   });
 });
 
 module.exports = {
   checkout,
   checkoutResponse,
+  getMyOrders,
   getAllMyOrders,
+  editOrderStatus,
 };

@@ -11,6 +11,8 @@ const {
   getPendingWorkshops,
   acceptWorkshop,
   rejectWorkshop,
+  getAllOrders,
+  editShippingStatus,
 } = require("../controllers/adminController");
 const { uploadFiles, processFiles } = require("../middlewares/uploadImageMW");
 const { protect, restrictTo } = require("../middlewares/AuthMW");
@@ -82,6 +84,15 @@ router.patch(
   protect,
   restrictTo("admin"),
   rejectWorkshop,
+);
+
+router.get("/orders", protect, restrictTo("admin"), getAllOrders);
+
+router.patch(
+  "/orders/:orderId",
+  protect,
+  restrictTo("admin"),
+  editShippingStatus,
 );
 
 module.exports = router;
