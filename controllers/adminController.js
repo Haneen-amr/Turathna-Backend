@@ -332,6 +332,7 @@ const rejectWorkshop = asyncFunction(async (req, res, next) => {
 
 const getAllOrders = asyncFunction(async (req, res, next) => {
   const orders = await Order.find({
+    shippingStatus: { $in: ["pending", "out for delivery"] },
     $or: [{ isPaid: true }, { paymentMethod: "cash" }],
   })
     .populate({
@@ -392,9 +393,12 @@ const editShippingStatus = asyncFunction(async (req, res, next) => {
 
   order.shippingStatus = status;
 
-  if (status == "delivered" && order.paymentMethod == "cash") {
-    order.isPaid = true;
-    order.paidAt = Date.now();
+  if (status == "delivered") {
+    order.deliveredAt = Date.now();
+    if (order.paymentMethod == "cash") {
+      order.isPaid = true;
+      order.paidAt = Date.now();
+    }
   }
 
   await order.save();
