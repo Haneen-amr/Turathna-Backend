@@ -9,7 +9,7 @@ ajvErrors(ajv);
 const orderSchema = {
   type: "object",
   properties: {
-    user: {
+    buyer: {
       type: "string",
       pattern: "^[0-9a-fA-F]{24}$",
       errorMessage: "Invalid user ID format",
@@ -48,11 +48,11 @@ const orderSchema = {
     paymentMethod: { type: "string", enum: ["online", "cash"] },
     orderStatus: {
       type: "string",
-      enum: ["pending", "in progress", "finished"],
+      enum: ["in progress", "finished"],
     },
     shippingStatus: {
       type: "string",
-      enum: ["in progress", "out for delivery", "delivered"],
+      enum: ["pending", "out for delivery", "delivered"],
     },
     isPaid: { type: "boolean" },
     paidAt: { type: "string", format: "date-time" },

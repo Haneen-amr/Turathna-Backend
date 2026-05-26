@@ -31,8 +31,8 @@ const orderSchema = new mongoose.Schema(
         },
         itemStatus: {
           type: String,
-          enum: ["pending", "in progress", "finished"],
-          default: "pending",
+          enum: ["in progress", "finished"],
+          default: "in progress",
         },
       },
       { _id: false },
@@ -77,7 +77,6 @@ const orderSchema = new mongoose.Schema(
       enum: ["pending", "out for delivery", "delivered"],
       default: "pending",
     },
-
     paymobOrderId: {
       type: String,
       unique: true,
@@ -91,6 +90,9 @@ const orderSchema = new mongoose.Schema(
       default: false,
     },
     paidAt: {
+      type: Date,
+    },
+    deliveredAt: {
       type: Date,
     },
   },

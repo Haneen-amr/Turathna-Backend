@@ -94,16 +94,24 @@ const checkoutResponse = asyncFunction(async (req, res) => {
 
 const getMyOrders = asyncFunction(async (req, res, next) => {
   const buyerId = req.params.id;
+  const twoDaysAgo = new Date();
+  twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
 
   const buyer = await User.findById(buyerId).select("-password -__v");
-  console.log("Searching for Buyer ID:", buyer);
-  console.log(req.params.id);
   if (!buyer || buyer.role !== "buyer")
     return next(new ApiError("Buyer not found", 404));
 
   const query = {
-    buyer: req.params.id,
-    $or: [{ isPaid: true }, { paymentMethod: "cash" }],
+    buyer: buyerId,
+    $and: [
+      { $or: [{ isPaid: true }, { paymentMethod: "cash" }] },
+      {
+        $or: [
+          { shippingStatus: { $ne: "delivered" } },
+          { deliveredAt: { $gte: twoDaysAgo } },
+        ],
+      },
+    ],
   };
 
   let orders = await Order.find(query)
@@ -112,7 +120,7 @@ const getMyOrders = asyncFunction(async (req, res, next) => {
       select: "title_ar title_en finalPrice coverImage",
     })
     .select(
-      "addressDetails.first_name addressDetails.last_name addressDetails.phone_number orderItems.quantity orderStatus shippingStatus createdAt",
+      "addressDetails.first_name addressDetails.last_name addressDetails.phone_number orderItems.quantity orderStatus shippingStatus createdAt deliveredAt",
     )
     .sort("-createdAt")
     .lean();
@@ -143,6 +151,7 @@ const getAllMyOrders = asyncFunction(async (req, res, next) => {
     return next(new ApiError("Seller not found", 404));
 
   let orders = await Order.find({
+    shippingStatus: { $in: ["pending", "out for delivery"] },
     $or: [{ isPaid: true }, { paymentMethod: "cash" }],
     "orderItems.product": { $exists: true },
   })
