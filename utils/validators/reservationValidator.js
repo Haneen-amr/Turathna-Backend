@@ -14,11 +14,19 @@ const orderSchema = {
       pattern: "^[0-9a-fA-F]{24}$",
       errorMessage: "Invalid user ID format",
     },
-    userDetails: {
+    buyerDetails: {
       type: "object",
       properties: {
         firstname: { type: "string" },
         lastname: { type: "string" },
+        phone: { type: "string" },
+      },
+      additionalProperties: false,
+    },
+    sellerDetails: {
+      type: "object",
+      properties: {
+        name: { type: "string" },
         phone: { type: "string" },
       },
       additionalProperties: false,
