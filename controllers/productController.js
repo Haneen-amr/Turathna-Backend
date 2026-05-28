@@ -221,9 +221,36 @@ const getProductByID = asyncFunction(async (req, res, next) => {
 
   if (!product) return next(new ApiError("Product not found", 404));
 
+  let relatedProducts = [];
+  if (req.auth?.role !== "seller" && req.auth?.role !== "admin") {
+    relatedProducts = await Product.aggregate([
+      {
+        $match: {
+          category: product.category._id,
+          _id: { $ne: product._id },
+          verificationStatus: "approved",
+        },
+      },
+      {
+        $sample: { size: 3 },
+      },
+      {
+        $project: {
+          title_ar: 1,
+          title_en: 1,
+          description_ar: 1,
+          description_en: 1,
+          finalPrice: 1,
+          coverImage: 1,
+          productImages: 1,
+        },
+      },
+    ]);
+  }
+
   res.status(200).json({
     success: true,
-    data: { product },
+    data: { product, relatedProducts },
   });
 });
 

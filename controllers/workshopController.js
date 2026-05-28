@@ -169,9 +169,41 @@ const getWorkshopByID = asyncFunction(async (req, res, next) => {
   const workshop = await query;
   if (!workshop) return next(new ApiError("Workshop not found", 404));
 
+  let relatedWorkshops = [];
+  if (req.auth?.role !== "seller" && req.auth?.role !== "admin") {
+    const today = new Date().toISOString().split("T")[0];
+
+    relatedWorkshops = await Workshop.aggregate([
+      {
+        $match: {
+          _id: { $ne: workshop._id },
+          verificationStatus: "approved",
+          date: { $gt: today },
+          seats: { $gt: 0 },
+        },
+      },
+      {
+        $sample: { size: 3 },
+      },
+      {
+        $project: {
+          title_ar: 1,
+          title_en: 1,
+          date: 1,
+          time: 1,
+          seats: 1,
+          finalPrice: 1,
+          coverImage: 1,
+          workshopOffline: 1,
+          workshopOnline: 1,
+        },
+      },
+    ]);
+  }
+
   res.status(200).json({
     success: true,
-    data: { workshop },
+    data: { workshop, relatedWorkshops },
   });
 });
 
