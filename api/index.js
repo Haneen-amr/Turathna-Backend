@@ -1,5 +1,7 @@
 const path = require("path");
 const express = require("express");
+const dns = require("dns");
+dns.setDefaultResultOrder("ipv4first");
 const { i18next, middleware } = require("../i18n");
 const { getTranslation } = require("../i18n/smartTranslate");
 const axios = require("axios");
