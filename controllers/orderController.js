@@ -151,7 +151,7 @@ const getAllMyOrders = asyncFunction(async (req, res, next) => {
     return next(new ApiError("Seller not found", 404));
 
   let orders = await Order.find({
-    shippingStatus: { $in: ["pending", "out for delivery"] },
+    "orderItems.itemStatus": "in progress",
     $or: [{ isPaid: true }, { paymentMethod: "cash" }],
     "orderItems.product": { $exists: true },
   })
@@ -169,7 +169,8 @@ const getAllMyOrders = asyncFunction(async (req, res, next) => {
         (item) =>
           item.product &&
           item.product.seller &&
-          item.product.seller.toString() === id,
+          item.product.seller.toString() === id &&
+          item.itemStatus === "in progress",
       );
 
       if (orderItems.length > 0) {
