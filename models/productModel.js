@@ -100,20 +100,12 @@ const productSchema = new mongoose.Schema(
       //updatedAt: { type: Date, default: Date.now },
     },
     embeddings: {
-      type: Number,
+      type: [Number],
     },
   },
   {
     timestamps: true,
   },
 );
-
-// productSchema.index({
-//   title_ar: "text",
-//   title_en: "text",
-//   description_ar: "text",
-//   description_en: "text",
-//   heritage_text: "text",
-// });
 
 module.exports = mongoose.model("Product", productSchema);

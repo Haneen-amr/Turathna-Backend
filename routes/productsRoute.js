@@ -6,6 +6,7 @@ const {
   getProductsByRegion,
   getAllMyProducts,
   getProductByID,
+  migrateEmbeddings,
   addProduct,
   editProduct,
   deleteProduct,
@@ -23,6 +24,8 @@ const {
   productValidator,
   updateProductValidator,
 } = require("../utils/validators/productValidator");
+
+//router.get("/run-migration", migrateEmbeddings);
 
 router.get("/", getAllProducts);
 

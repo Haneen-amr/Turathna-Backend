@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   getAllWorkshops,
   getWorkshopByID,
+  migrateEmbeddings,
   getAllMyWorkshops,
   addWorkshop,
   deleteWorkshop,
@@ -20,6 +21,8 @@ const {
   workshopValidator,
   updateWorkshopValidator,
 } = require("../utils/validators/workshopValidator");
+
+router.get("/run-migration", migrateEmbeddings);
 
 router.get("/", optionalAuth, getAllWorkshops);
 
