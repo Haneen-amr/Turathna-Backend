@@ -22,7 +22,7 @@ const {
   updateWorkshopValidator,
 } = require("../utils/validators/workshopValidator");
 
-router.get("/run-migration", migrateEmbeddings);
+//router.get("/run-migration", migrateEmbeddings);
 
 router.get("/", optionalAuth, getAllWorkshops);
 
