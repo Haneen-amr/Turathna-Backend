@@ -142,6 +142,18 @@ const addWorkshop = asyncFunction(async (req, res, next) => {
     seller: req.params.id,
   });
 
+  try {
+    const embedding = await generateEmbedding(newWorkshop);
+    if (embedding) {
+      await Workshop.updateOne(
+        { _id: newWorkshop._id },
+        { $set: { embeddings: embedding } },
+      );
+    }
+  } catch (err) {
+    console.error("[addWorkshop] Embedding failed:", err.message);
+  }
+
   let result = newWorkshop.toObject();
   delete result.finalPrice;
 
