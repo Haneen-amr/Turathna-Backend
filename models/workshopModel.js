@@ -76,6 +76,9 @@ const workshopSchema = new mongoose.Schema(
     rejectionMsg: {
       type: String,
     },
+    embeddings: {
+      type: [Number],
+    },
   },
   {
     timestamps: true,

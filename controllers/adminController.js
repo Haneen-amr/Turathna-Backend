@@ -349,14 +349,20 @@ const getAllOrders = asyncFunction(async (req, res, next) => {
     .sort("-createdAt")
     .lean();
 
-  const ordersList = orders.map((order) => {
-    return {
-      ...order,
-      orderDate: order.createdAt
-        ? order.createdAt.toISOString().split("T")[0]
-        : null,
-    };
-  });
+  const ordersList = orders
+    .map((order) => {
+      const validItems = order.orderItems.filter(
+        (item) => item.product !== null,
+      );
+      return {
+        ...order,
+        orderItems: validItems,
+        orderDate: order.createdAt
+          ? order.createdAt.toISOString().split("T")[0]
+          : null,
+      };
+    })
+    .filter((order) => order.orderItems.length > 0);
 
   res.status(200).json({
     status: "success",

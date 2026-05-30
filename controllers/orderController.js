@@ -19,9 +19,19 @@ const checkout = asyncFunction(async (req, res, next) => {
     return next(new Error("Your cart is empty!"));
   }
 
+  const validCartProducts = cart.products.filter(
+    (item) => item.product !== null,
+  );
+
+  if (validCartProducts.length === 0) {
+    return next(
+      new ApiError("All products in your cart are no longer available.", 400),
+    );
+  }
+
   const shippingFees = { cairo: 70, giza: 100 };
   const deliveryFee = shippingFees[region.toLowerCase()] || 120;
-  const subtotal = cart.products.reduce((sum, item) => {
+  const subtotal = validCartProducts.reduce((sum, item) => {
     return sum + item.product.finalPrice * item.quantity;
   }, 0);
   const totalPrice = subtotal + deliveryFee;
@@ -128,14 +138,20 @@ const getMyOrders = asyncFunction(async (req, res, next) => {
   if (!orders || orders.length === 0)
     return next(new ApiError("No Orders Available", 404));
 
-  const ordersList = orders.map((order) => {
-    return {
-      ...order,
-      orderDate: order.createdAt
-        ? order.createdAt.toISOString().split("T")[0]
-        : null,
-    };
-  });
+  const ordersList = orders
+    .map((order) => {
+      const validItems = order.orderItems.filter(
+        (item) => item.product !== null,
+      );
+      return {
+        ...order,
+        orderItems: validItems,
+        orderDate: order.createdAt
+          ? order.createdAt.toISOString().split("T")[0]
+          : null,
+      };
+    })
+    .filter((order) => order.orderItems.length > 0);
 
   res.status(200).json({
     status: "success",

@@ -4,6 +4,8 @@ const Workshop = require("../models/workshopModel");
 const Reservation = require("../models/reservationModel");
 const User = require("../models/userModel");
 const { autoTranslate } = require("./translationController");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 const getAllWorkshops = asyncFunction(async (req, res, next) => {
   const now = new Date().toISOString().split("T")[0];
@@ -150,6 +152,25 @@ const addWorkshop = asyncFunction(async (req, res, next) => {
   });
 });
 
+// ─────────────────────────────────────────────
+// EMBEDDING HELPER — call this on create & update
+// ─────────────────────────────────────────────
+const generateEmbedding = async (workshop) => {
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-embedding-001" }); // ← correct model name
+    const result = await model.embedContent({
+      content: {
+        parts: [{ text: `${workshop.title_en} ${workshop.description_en}` }],
+      },
+      outputDimensionality: 768, // ← this only works on gemini-embedding-001, not 004
+    });
+    return result.embedding.values;
+  } catch (err) {
+    console.error("[Embedding Helper Error]:", err.message);
+    return null;
+  }
+};
+
 const getWorkshopByID = asyncFunction(async (req, res, next) => {
   const { workshopId } = req.params;
   let query;
@@ -173,37 +194,136 @@ const getWorkshopByID = asyncFunction(async (req, res, next) => {
   if (req.auth?.role !== "seller" && req.auth?.role !== "admin") {
     const today = new Date().toISOString().split("T")[0];
 
-    relatedWorkshops = await Workshop.aggregate([
-      {
-        $match: {
-          _id: { $ne: workshop._id },
-          verificationStatus: "approved",
-          date: { $gt: today },
-          seats: { $gt: 0 },
-        },
-      },
-      {
-        $sample: { size: 3 },
-      },
-      {
-        $project: {
-          title_ar: 1,
-          title_en: 1,
-          date: 1,
-          time: 1,
-          seats: 1,
-          finalPrice: 1,
-          coverImage: 1,
-          workshopOffline: 1,
-          workshopOnline: 1,
-        },
-      },
-    ]);
+    // ── Try vector search first ──────────────────────────────────────────
+    let excludeIds = [workshop._id];
+    if (workshop.embeddings?.length > 0) {
+      try {
+        relatedWorkshops = await Workshop.aggregate([
+          {
+            $vectorSearch: {
+              index: "workshops_search_index",
+              path: "embeddings",
+              queryVector: workshop.embeddings,
+              numCandidates: 50,
+              limit: 6, // fetch more than needed so we can filter
+              filter: {
+                verificationStatus: { $eq: "approved" },
+                date: { $gt: today },
+                seats: { $gt: 0 },
+              },
+            },
+          },
+          // exclude the current workshop after the search
+          {
+            $match: { _id: { $ne: workshop._id } },
+          },
+          { $limit: 3 },
+          {
+            $project: {
+              title_ar: 1,
+              title_en: 1,
+              description_ar: 1,
+              description_en: 1,
+              finalPrice: 1,
+              coverImage: 1,
+              date: 1,
+              time: 1,
+              seats: 1,
+              workshopOffline: 1,
+              workshopOnline: 1,
+            },
+          },
+        ]);
+        relatedWorkshops.forEach((w) => excludeIds.push(w._id));
+      } catch (err) {
+        console.error("[Vector Search] Failed:", err.message);
+        relatedWorkshops = []; // ensure fallback runs
+      }
+    }
+
+    // ── Fallback: fill up to 3 with random workshops ────────
+    // Runs if: no embeddings, vector search failed, or returned < 3 results
+    if (relatedWorkshops.length < 3) {
+      const needed = 3 - relatedWorkshops.length;
+      const excludeIds = [workshop._id, ...relatedWorkshops.map((p) => p._id)];
+
+      try {
+        const fallbackWorkshops = await Workshop.aggregate([
+          {
+            $match: {
+              _id: { $nin: excludeIds },
+              verificationStatus: "approved",
+              date: { $gt: today },
+              seats: { $gt: 0 },
+            },
+          },
+          { $sort: { createdAt: -1 } },
+          { $sample: { size: needed } },
+          {
+            $project: {
+              title_ar: 1,
+              title_en: 1,
+              finalPrice: 1,
+              coverImage: 1,
+              date: 1,
+              time: 1,
+              seats: 1,
+              workshopOffline: 1,
+              workshopOnline: 1,
+            },
+          },
+        ]);
+
+        relatedWorkshops = [...relatedWorkshops, ...fallbackWorkshops];
+      } catch (err) {
+        console.error("[Random Fallback] Failed:", err.message);
+      }
+    }
   }
+
+  const workshopObj = workshop.toObject();
+  delete workshopObj.embeddings;
 
   res.status(200).json({
     success: true,
-    data: { workshop, relatedWorkshops },
+    data: { workshop: workshopObj, relatedWorkshops },
+  });
+});
+
+// ─────────────────────────────────────────────
+// ONE-TIME MIGRATION SCRIPT
+// Run manually: node -e "require('./controllers/workshopController').migrateEmbeddings()"
+// ─────────────────────────────────────────────
+const migrateEmbeddings = asyncFunction(async (req, res, next) => {
+  // Only migrate workshops that have English content but no embeddings yet
+  const workshops = await Workshop.find({
+    $or: [
+      { embeddings: { $exists: false } },
+      { embeddings: { $eq: [] } },
+      { embeddings: null },
+    ],
+    title_en: { $exists: true, $ne: "" },
+  });
+
+  console.log(`[Migration] Found ${workshops.length} workshops to embed`);
+
+  for (const w of workshops) {
+    const values = await generateEmbedding(w);
+    if (values) {
+      await Workshop.updateOne(
+        { _id: w._id },
+        { $set: { embeddings: values } },
+      );
+      console.log(`[Migration] ✓ ${w._id}`);
+    } else {
+      console.log(`[Migration] ✗ Failed: ${w._id} (Check Internet/API Key)`);
+    }
+    await new Promise((r) => setTimeout(r, 1000));
+  }
+
+  res.status(200).json({
+    status: "success",
+    message: `Migration completed. Updated ${workshops.length} workshops.`,
   });
 });
 
@@ -227,7 +347,9 @@ const deleteWorkshop = asyncFunction(async (req, res, next) => {
 module.exports = {
   getAllWorkshops,
   getAllMyWorkshops,
+  generateEmbedding,
   getWorkshopByID,
+  migrateEmbeddings,
   addWorkshop,
   deleteWorkshop,
 };

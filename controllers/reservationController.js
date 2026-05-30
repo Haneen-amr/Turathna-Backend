@@ -78,6 +78,7 @@ const getAllReservations = asyncFunction(async (req, res, next) => {
   }
 
   const reservationsList = await Reservation.find(filter)
+    .populate("workshop")
     .select("-__v")
     .sort("-createdAt")
     .lean();
@@ -85,10 +86,22 @@ const getAllReservations = asyncFunction(async (req, res, next) => {
   if (!reservationsList || reservationsList.length === 0)
     return next(new ApiError("No Workshops Reservations Available", 404));
 
+  const validReservations = reservationsList.filter(
+    (res) => res.workshop !== null,
+  );
+
+  if (validReservations.length === 0)
+    return next(
+      new ApiError(
+        "Reservations found, but workshops are no longer available",
+        404,
+      ),
+    );
+
   const data =
     req.auth.role === "buyer"
-      ? reservationsList.map(({ sellerDetails, ...rest }) => rest) // hides seller info from buyer
-      : reservationsList; // admins see everything, including sellerDetails
+      ? validReservations.map(({ sellerDetails, ...rest }) => rest) // hides seller info from buyer
+      : validReservations; // admins see everything, including sellerDetails
 
   res.status(200).json({
     status: "success",
